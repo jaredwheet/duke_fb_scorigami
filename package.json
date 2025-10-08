@@ -1,0 +1,30 @@
+{
+  "name": "duke_fb_scorigami",
+  "version": "1.0.0",
+  "description": "Project that identifies duke fb scorigamis",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaredwheet/duke_fb_scorigami.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jaredwheet/duke_fb_scorigami/issues"
+  },
+  "homepage": "https://github.com/jaredwheet/duke_fb_scorigami#readme",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
