@@ -19,10 +19,18 @@
   },
   "homepage": "https://github.com/jaredwheet/duke_fb_scorigami#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.75.0",
     "axios": "^1.12.2",
+    "better-sqlite3": "^12.4.1",
+    "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "sqlite3": "^5.1.7"
+    "node-fetch": "^3.3.2",
+    "pdf-parse": "^2.2.2",
+    "puppeteer": "^24.23.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "twitter-api-v2": "^1.27.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
