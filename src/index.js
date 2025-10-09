@@ -10,7 +10,7 @@ export async function run() {
     try {
         const todayDate = new Date().toISOString().split('T')[0];
         const today = new Date();
-        if (today.getDay() === 3) { // 3 = Wednesday
+        if (today.getDay() === 4) { // 3 = Wednesday
             const nextGame = await getNextScheduledDukeGame();
             if (nextGame) {
                 const pregameKey = 'pregame';
