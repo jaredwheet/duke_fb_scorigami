@@ -26,8 +26,8 @@ export async function run() {
                     }
                     const pregameMsg = `🏈 Next Duke game Reminder! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
                     console.log(pregameMsg);
-                    await tweet(pregameMsg);
                     await markTweeted(nextGame.id, pregameKey);
+                    await tweet(pregameMsg);
                 }
             }
         }
