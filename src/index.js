@@ -68,7 +68,7 @@ export async function run() {
                 }
             }
         }
-        
+
         // Final
         if (game.completed) {
             // Insert the completed game into the database
@@ -115,6 +115,5 @@ export async function run() {
     }
 }
 
-if (import.meta.main) {
-    run();
-}
+run();
+
