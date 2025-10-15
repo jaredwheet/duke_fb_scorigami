@@ -11,6 +11,7 @@ export const tweet = async (msg) => {
   try {
     await twitterClient.v2.tweet(msg);
     console.log('Tweeted:', msg);
+    return msg
   } catch (err) {
     console.error('Twitter error:', err);
   }

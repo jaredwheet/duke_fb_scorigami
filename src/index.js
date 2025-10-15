@@ -37,8 +37,8 @@ export async function run() {
                 if (HASHTAGS && HASHTAGS.length > 0) {
                     pregameMsg += `\n${HASHTAGS.join(' ')}`;
                 }
-                console.log(pregameMsg);
                 const tweetResult = await tweet(trimTweet(pregameMsg));
+                console.log('Tweet result:', tweetResult);
                 if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
                     await markTweeted(nextGame.id, pregameKey);
                 }
