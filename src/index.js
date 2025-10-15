@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { getDukeGame, getGameVenue, getNextScheduledDukeGame } from './gameApi.js';
-import { isScorigami, getLastScoreOccurrence } from './scorigami.js';
+import { isScorigami, getLastScoreOccurrenceFromGames } from './scorigami.js';
 import { alreadyTweeted, markTweeted, insertGame } from './db.js';
 import { tweet } from './twitterClient.js';
 
@@ -57,9 +57,9 @@ export async function run() {
 
         // In-progress
         if (!game.completed) {
-            const gami = await isScorigami(dukeScore, oppScore);
+            const scorigamiResult = await isScorigami(dukeScore, oppScore);
             if (!(await alreadyTweeted(game.id, scoreKey))) {
-                const msg = gami
+                const msg = scorigamiResult.isScorigami
                     ? `👀 In-progress update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nIf this holds, it'll be a #DUKEFBSCORIGAMI — a score that's NEVER happened before! 🏈\n\nWill this end up a #SCORIGAMI? Comment your guess!`
                     : `Live update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami yet.\n\nWill this end up a #DUKEFBSCORIGAMI? Comment your guess!`;
                 const tweetResult = await tweet(msg);
@@ -72,16 +72,17 @@ export async function run() {
         // Final
         if (game.completed) {
             // Insert the completed game into the database
-            const gami = await isScorigami(dukeScore, oppScore);
+            const scorigamiResult = await isScorigami(dukeScore, oppScore);
             await insertGame(game, venue, dukeIsHome);
             if (!(await alreadyTweeted(game.id, `${scoreKey}-final`))) {
                 let msg;
-                if (gami) {
+                if (scorigamiResult.isScorigami) {
                     msg = `🚨 FINAL SCORIGAMI 🚨\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nThis score has NEVER happened before in Duke football history! 🏈\n\nWhat did you think of the game? Drop your reactions below! 👇`;
                 } else {
-                    // Find last occurrence
-                    const last = await getLastScoreOccurrence(dukeScore, oppScore, game);
+                    // Use games array for last occurrence and count
+                    const last = getLastScoreOccurrenceFromGames(scorigamiResult.games);
                     console.log('Last occurrence of this score:', last);
+                    const occurrences = scorigamiResult.occurrences;
                     let lastStr = '';
                     if (last) {
                         const lastDate = last.date ? new Date(last.date).toLocaleDateString() : 'unknown date';
@@ -101,7 +102,7 @@ export async function run() {
                         }
                         lastStr = `\nLast time: ${teamA} ${last.teamAScore}-${last.teamBScore} ${teamB} on ${lastDate}${venueStr}`;
                     }
-                    msg = `Final: Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami — it's happened before.${lastStr}`;
+                    msg = `Final: Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami — this result has happened ${occurrences} times in Duke football history.${lastStr}`;
                 }
                 console.log(msg)
                 const tweetResult = await tweet(msg);
