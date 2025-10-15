@@ -47,13 +47,17 @@ export async function run() {
         if (!game) return console.log('No Duke game today.');
 
         const venue = await getGameVenue(game);
+        const dukeIsHome = game.homeTeam === 'Duke';
         if (venue) {
-            console.log(`Duke vs ${game.awayTeam} at ${venue.name}, ${venue.city}, ${venue.state}`);
+            if (dukeIsHome) {
+                console.log(`Duke vs ${game.awayTeam} at ${venue.name}, ${venue.city}, ${venue.state}`);
+            } else {
+                console.log(`${game.homeTeam} vs Duke at ${venue.name}, ${venue.city}, ${venue.state}`);
+            }
         } else {
             console.log('Venue info not found');
         }
 
-        const dukeIsHome = game.homeTeam === 'Duke';
         const dukeScore = dukeIsHome ? game.homePoints : game.awayPoints;
         const oppScore = dukeIsHome ? game.awayPoints : game.homePoints;
         const opponent = dukeIsHome ? game.awayTeam : game.homeTeam;
