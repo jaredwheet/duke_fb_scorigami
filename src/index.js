@@ -1,8 +1,10 @@
+import { trimTweet } from './tweetUtils.js';
 import 'dotenv/config';
 import { getDukeGame, getGameVenue, getNextScheduledDukeGame } from './gameApi.js';
 import { isScorigami, getLastScoreOccurrenceFromGames } from './scorigami.js';
 import { alreadyTweeted, markTweeted, insertGame } from './db.js';
 import { tweet } from './twitterClient.js';
+import { TAGGED_ACCOUNTS, HASHTAGS } from './tweetConfig.js';
 
 
 export async function run() {
@@ -24,10 +26,17 @@ export async function run() {
                     } else if (nextGame.city || nextGame.state) {
                         venueStr = `${nextGame.city || ''}${nextGame.city && nextGame.state ? ', ' : ''}${nextGame.state || ''}`;
                     }
-                    const pregameMsg = `🏈 Next Duke game Reminder! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
+                    let pregameMsg = `🏈 Next Duke game Reminder! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
+                    // Append tagged accounts
+                    if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
+                        pregameMsg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
+                    }
+                    if (HASHTAGS && HASHTAGS.length > 0) {
+                        pregameMsg += `\n${HASHTAGS.join(' ')}`;
+                    }
                     console.log(pregameMsg);
                     await markTweeted(nextGame.id, pregameKey);
-                    await tweet(pregameMsg);
+                    await tweet(trimTweet(pregameMsg));
                 }
             }
         }
@@ -59,10 +68,16 @@ export async function run() {
         if (!game.completed) {
             const scorigamiResult = await isScorigami(dukeScore, oppScore);
             if (!(await alreadyTweeted(game.id, scoreKey))) {
-                const msg = scorigamiResult.isScorigami
+                let msg = scorigamiResult.isScorigami
                     ? `👀 In-progress update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nIf this holds, it'll be a #DUKEFBSCORIGAMI — a score that's NEVER happened before! 🏈\n\nWill this end up a #SCORIGAMI? Comment your guess!`
                     : `Live update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami yet.\n\nWill this end up a #DUKEFBSCORIGAMI? Comment your guess!`;
-                const tweetResult = await tweet(msg);
+                if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
+                    msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
+                }
+                if (HASHTAGS && HASHTAGS.length > 0) {
+                    msg += `\n${HASHTAGS.join(' ')}`;
+                }
+                const tweetResult = await tweet(trimTweet(msg));
                 if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
                     await markTweeted(game.id, scoreKey);
                 }
@@ -104,8 +119,14 @@ export async function run() {
                     }
                     msg = `Final: Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami — this result has happened ${occurrences} times in Duke football history.${lastStr}`;
                 }
+                if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
+                    msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
+                }
+                if (HASHTAGS && HASHTAGS.length > 0) {
+                    msg += `\n${HASHTAGS.join(' ')}`;
+                }
                 console.log(msg)
-                const tweetResult = await tweet(msg);
+                const tweetResult = await tweet(trimTweet(msg));
                 if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
                     await markTweeted(game.id, `${scoreKey}-final`);
                 }
