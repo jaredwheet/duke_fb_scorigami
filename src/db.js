@@ -1,7 +1,6 @@
 import supabase from './supabaseClient.js';
 
 export async function alreadyTweeted(gameId, scoreKey) {
-    await testDbConnection();   
     const { data } = await supabase
         .from('tweeted_scores')
         .select('*')
@@ -9,20 +8,6 @@ export async function alreadyTweeted(gameId, scoreKey) {
         .eq('score_key', scoreKey);
     console.log('Already tweeted check:', data);
     return data && data.length > 0;
-}
-
-// Simple function to test DB connection
-export async function testDbConnection() {
-    const { data, error } = await supabase
-        .from('duke_football_games')
-        .select('id')
-        .limit(1);
-    if (error) {
-        console.error('DB connection failed:', error);
-        return false;
-    }
-    console.log('DB connection successful:', data);
-    return true;
 }
 
 export async function markTweeted(gameId, scoreKey) {
