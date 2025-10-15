@@ -6,6 +6,7 @@ export async function alreadyTweeted(gameId, scoreKey) {
     .select('*')
     .eq('game_id', gameId)
     .eq('score_key', scoreKey);
+    console.log('Already tweeted check:', data);
   return data && data.length > 0;
 }
 
