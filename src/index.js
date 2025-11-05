@@ -35,7 +35,7 @@ export async function run() {
                     } else if (nextGame.city || nextGame.state) {
                         venueStr = `${nextGame.city || ''}${nextGame.city && nextGame.state ? ', ' : ''}${nextGame.state || ''}`;
                     }
-                    let pregameMsg = `🏈 Next Duke game Reminder! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
+                    let pregameMsg = `🏈 Reminder, Duke's next game is coming up!! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
                     // Append tagged accounts
                     if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
                         pregameMsg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
