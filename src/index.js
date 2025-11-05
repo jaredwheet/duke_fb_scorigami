@@ -108,8 +108,23 @@ export async function run() {
             await insertGame(game, venue, dukeIsHome);
             if (!(await alreadyTweeted(game.id, `${scoreKey}-final`))) {
                 let msg;
+                let tweetId = null;
                 if (scorigamiResult.isScorigami) {
                     msg = `🚨 FINAL SCORIGAMI 🚨\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nThis score has NEVER happened before in Duke football history! 🏈\n\nWhat did you think of the game? Drop your reactions below! 👇`;
+                    if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
+                        msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
+                    }
+                    if (HASHTAGS && HASHTAGS.length > 0) {
+                        msg += `\n${HASHTAGS.join(' ')}`;
+                    }
+                    console.log(msg)
+                    tweetId = await tweet(trimTweet(msg));
+                    if (tweetId) {
+                        await markTweeted(game.id, `${scoreKey}-final`);
+                        // Reply to the tweet tagging accounts
+                        const replyMsg = `Tagging our favorite X accounts: ${TAGGED_ACCOUNTS.join(' ')}`;
+                        await tweet(replyMsg, tweetId);
+                    }
                 } else {
                     // Use games array for last occurrence and count
                     const last = getLastScoreOccurrenceFromGames(scorigamiResult.games);
@@ -135,17 +150,17 @@ export async function run() {
                         lastStr = `\nLast time: ${teamA} ${last.teamAScore}-${last.teamBScore} ${teamB} on ${lastDate}${venueStr}`;
                     }
                     msg = `Final: Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami — this result has happened ${occurrences} times in Duke football history.${lastStr}`;
-                }
-                if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
-                    msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
-                }
-                if (HASHTAGS && HASHTAGS.length > 0) {
-                    msg += `\n${HASHTAGS.join(' ')}`;
-                }
-                console.log(msg)
-                const tweetResult = await tweet(trimTweet(msg));
-                if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
-                    await markTweeted(game.id, `${scoreKey}-final`);
+                    if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
+                        msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
+                    }
+                    if (HASHTAGS && HASHTAGS.length > 0) {
+                        msg += `\n${HASHTAGS.join(' ')}`;
+                    }
+                    console.log(msg)
+                    tweetId = await tweet(trimTweet(msg));
+                    if (tweetId) {
+                        await markTweeted(game.id, `${scoreKey}-final`);
+                    }
                 }
             }
         }

@@ -7,13 +7,18 @@ const twitterClient = new TwitterApi({
   accessSecret: process.env.TWITTER_ACCESS_SECRET,
 });
 
-export const tweet = async (msg) => {
+export const tweet = async (msg, inReplyToTweetId = null) => {
   try {
-    await twitterClient.v2.tweet(msg);
+    const payload = { text: msg };
+    if (inReplyToTweetId) {
+      payload.reply = { in_reply_to_tweet_id: inReplyToTweetId };
+    }
+    const result = await twitterClient.v2.tweet(payload);
     console.log('Tweeted:', msg);
-    return msg
+    return result?.data?.id || null;
   } catch (err) {
     console.error('Twitter error:', err);
+    return null;
   }
 };
 
