@@ -13,35 +13,44 @@ export async function run() {
         const todayDate = new Date().toISOString().split('T')[0];
         const today = new Date();
         if (today.getDay() === 3) { // 3 = Wednesday
-            const nextGame = await getNextScheduledDukeGame();
-            if (nextGame) {
-                const pregameKey = 'pregame';
-                if (await alreadyTweeted(nextGame.id, pregameKey)) {
-                    console.log('Pregame tweet already sent for this game. Exiting.');
-                    return;
+            // Get current time in CST (America/Chicago)
+            const nowCST = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
+            const cstDate = new Date(nowCST);
+            const cstHour = cstDate.getHours();
+            // Only send tweet if time is between 12pm and 1pm CST
+            if (cstHour === 12) {
+                const nextGame = await getNextScheduledDukeGame();
+                if (nextGame) {
+                    const pregameKey = 'pregame';
+                    if (await alreadyTweeted(nextGame.id, pregameKey)) {
+                        console.log('Pregame tweet already sent for this game. Exiting.');
+                        return;
+                    }
+                    const venue = await getGameVenue(nextGame);
+                    const opponent = nextGame.homeTeam === 'Duke' ? nextGame.awayTeam : nextGame.homeTeam;
+                    const gameTime = new Date(nextGame.startDate).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                    let venueStr = '';
+                    if (venue) {
+                        venueStr = `${venue.name}, ${venue.city}, ${venue.state}`;
+                    } else if (nextGame.city || nextGame.state) {
+                        venueStr = `${nextGame.city || ''}${nextGame.city && nextGame.state ? ', ' : ''}${nextGame.state || ''}`;
+                    }
+                    let pregameMsg = `🏈 Next Duke game Reminder! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
+                    // Append tagged accounts
+                    if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
+                        pregameMsg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
+                    }
+                    if (HASHTAGS && HASHTAGS.length > 0) {
+                        pregameMsg += `\n${HASHTAGS.join(' ')}`;
+                    }
+                    const tweetResult = await tweet(trimTweet(pregameMsg));
+                    console.log('Tweet result:', tweetResult);
+                    if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
+                        await markTweeted(nextGame.id, pregameKey);
+                    }
                 }
-                const venue = await getGameVenue(nextGame);
-                const opponent = nextGame.homeTeam === 'Duke' ? nextGame.awayTeam : nextGame.homeTeam;
-                const gameTime = new Date(nextGame.startDate).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-                let venueStr = '';
-                if (venue) {
-                    venueStr = `${venue.name}, ${venue.city}, ${venue.state}`;
-                } else if (nextGame.city || nextGame.state) {
-                    venueStr = `${nextGame.city || ''}${nextGame.city && nextGame.state ? ', ' : ''}${nextGame.state || ''}`;
-                }
-                let pregameMsg = `🏈 Next Duke game Reminder! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
-                // Append tagged accounts
-                if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
-                    pregameMsg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
-                }
-                if (HASHTAGS && HASHTAGS.length > 0) {
-                    pregameMsg += `\n${HASHTAGS.join(' ')}`;
-                }
-                const tweetResult = await tweet(trimTweet(pregameMsg));
-                console.log('Tweet result:', tweetResult);
-                if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
-                    await markTweeted(nextGame.id, pregameKey);
-                }
+            } else {
+                console.log('It is Wednesday, but not between noon and 1pm CST. Pregame tweet will not be sent.');
             }
         }
 
