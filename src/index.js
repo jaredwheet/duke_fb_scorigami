@@ -10,9 +10,20 @@ import { TAGGED_ACCOUNTS, HASHTAGS } from './tweetConfig.js';
 export async function run() {
     // Pregame reminder logic for Wednesday
     try {
-        const todayDate = new Date().toISOString().split('T')[0];
-        const today = new Date();
-        if (today.getDay() === 3) { // 3 = Wednesday
+        // Get current date and time in EST (America/New_York)
+        // Support fake date for testing via FAKE_DATE env var (format: YYYY-MM-DD)
+        let estDate;
+        if (process.env.FAKE_DATE) {
+            const fakeDateTime = `${process.env.FAKE_DATE}T12:00:00`;
+            estDate = new Date(fakeDateTime);
+            console.log(`⚠️ Using FAKE_DATE: ${process.env.FAKE_DATE}`);
+        } else {
+            const nowEST = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+            estDate = new Date(nowEST);
+        }
+        const todayDate = estDate.toISOString().split('T')[0];
+        
+        if (estDate.getDay() === 3) { // 3 = Wednesday
             // Get current time in CST (America/Chicago)
             const nowCST = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
             const cstDate = new Date(nowCST);
@@ -111,9 +122,6 @@ export async function run() {
                 let tweetId = null;
                 if (scorigamiResult.isScorigami) {
                     msg = `🚨 FINAL SCORIGAMI 🚨\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nThis score has NEVER happened before in Duke football history! 🏈\n\nWhat did you think of the game? Drop your reactions below! 👇`;
-                    if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
-                        msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
-                    }
                     if (HASHTAGS && HASHTAGS.length > 0) {
                         msg += `\n${HASHTAGS.join(' ')}`;
                     }
@@ -122,8 +130,10 @@ export async function run() {
                     if (tweetId) {
                         await markTweeted(game.id, `${scoreKey}-final`);
                         // Reply to the tweet tagging accounts
-                        const replyMsg = `Tagging our favorite X accounts: ${TAGGED_ACCOUNTS.join(' ')}`;
-                        await tweet(replyMsg, tweetId);
+                        if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
+                            const replyMsg = `${TAGGED_ACCOUNTS.join(' ')}`;
+                            await tweet(replyMsg, tweetId);
+                        }
                     }
                 } else {
                     // Use games array for last occurrence and count
