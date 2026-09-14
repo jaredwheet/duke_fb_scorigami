@@ -15,10 +15,12 @@ export const tweet = async (msg, inReplyToTweetId = null) => {
     }
     const result = await twitterClient.v2.tweet(payload);
     console.log('Tweeted:', msg);
-    return result?.data?.id || null;
+    const tweetId = result?.data?.id;
+    if (!tweetId) throw new Error('Twitter API returned no tweet ID');
+    return tweetId;
   } catch (err) {
     console.error('Twitter error:', err);
-    return null;
+    throw err;
   }
 };
 

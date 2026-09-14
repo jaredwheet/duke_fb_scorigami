@@ -1,183 +1,218 @@
-import { trimTweet } from './tweetUtils.js';
 import 'dotenv/config';
-import { getDukeGame, getGameVenue, getNextScheduledDukeGame } from './gameApi.js';
+import { trimTweet } from './tweetUtils.js';
+import { getDukeGame, getDukeGames, getGameVenue, getNextScheduledDukeGame } from './gameApi.js';
 import { isScorigami, getLastScoreOccurrenceFromGames } from './scorigami.js';
 import { alreadyTweeted, markTweeted, insertGame } from './db.js';
 import { tweet } from './twitterClient.js';
-import { TAGGED_ACCOUNTS, HASHTAGS } from './tweetConfig.js';
+import { DEFAULT_BACKFILL_DAYS, getDukeScoreDetails, getRecentCompletedDukeGames } from './gameUtils.js';
+import { HASHTAGS } from './tweetConfig.js';
 
+function getDatePart(date, timeZone, type) {
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        [type]: type === 'weekday' ? 'long' : '2-digit',
+    }).format(date);
+}
+
+function getDateKey(date, timeZone) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function getHour(date, timeZone) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hour: '2-digit',
+        hour12: false,
+    }).formatToParts(date);
+    return Number(parts.find(({ type }) => type === 'hour')?.value);
+}
+
+function getReferenceDate() {
+    if (!process.env.FAKE_DATE) return new Date();
+
+    const fakeDate = new Date(`${process.env.FAKE_DATE}T12:00:00Z`);
+    if (Number.isNaN(fakeDate.getTime())) {
+        throw new Error(`Invalid FAKE_DATE: ${process.env.FAKE_DATE}`);
+    }
+    console.log(`Using FAKE_DATE: ${process.env.FAKE_DATE}`);
+    return fakeDate;
+}
+
+function getBackfillDays() {
+    const requestedDays = Number(process.env.BACKFILL_DAYS);
+    return Number.isFinite(requestedDays) && requestedDays >= 0
+        ? requestedDays
+        : DEFAULT_BACKFILL_DAYS;
+}
+
+function appendHashtags(message, separator = '\n') {
+    return HASHTAGS.length > 0 ? `${message}${separator}${HASHTAGS.join(' ')}` : message;
+}
+
+function formatVenue(venue, game) {
+    if (venue) return `${venue.name}, ${venue.city}, ${venue.state}`;
+    if (game.city || game.state) {
+        return `${game.city || ''}${game.city && game.state ? ', ' : ''}${game.state || ''}`;
+    }
+    return '';
+}
+
+function logGame(game, venue, { dukeIsHome }) {
+    if (venue) {
+        if (dukeIsHome) {
+            console.log(`Duke vs ${game.awayTeam} at ${venue.name}, ${venue.city}, ${venue.state}`);
+        } else {
+            console.log(`${game.homeTeam} vs Duke at ${venue.name}, ${venue.city}, ${venue.state}`);
+        }
+    } else {
+        console.log('Venue info not found');
+    }
+}
+
+async function sendPregameReminder(games, now) {
+    if (getDatePart(now, 'America/New_York', 'weekday') !== 'Wednesday') return;
+    if (getHour(now, 'America/Chicago') !== 12) {
+        console.log('It is Wednesday, but not between noon and 1pm CST. Pregame tweet will not be sent.');
+        return;
+    }
+
+    const nextGame = await getNextScheduledDukeGame(games);
+    if (!nextGame || await alreadyTweeted(nextGame.id, 'pregame')) return;
+
+    const venue = await getGameVenue(nextGame);
+    const opponent = nextGame.homeTeam === 'Duke' ? nextGame.awayTeam : nextGame.homeTeam;
+    const gameTime = new Date(nextGame.startDate).toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
+    const pregameMsg = appendHashtags(
+        `🏈 Reminder, Duke's next game is coming up!! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${formatVenue(venue, nextGame)}\n\nDrop your score predictions in the comments! 👇`,
+    );
+
+    const tweetId = await tweet(trimTweet(pregameMsg));
+    console.log('Tweet result:', tweetId);
+    await markTweeted(nextGame.id, 'pregame');
+}
+
+async function processLiveGame(game) {
+    const { dukeScore, oppScore, opponent, scoreKey } = getDukeScoreDetails(game);
+    if (dukeScore == null || oppScore == null) {
+        console.log('Game not started yet.');
+        return;
+    }
+    if (await alreadyTweeted(game.id, scoreKey)) return;
+
+    const scorigamiResult = await isScorigami(dukeScore, oppScore, game);
+    const message = scorigamiResult.isScorigami
+        ? `👀 In-progress update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nIf this holds, it'll be a #DUKEFBSCORIGAMI — a score that's NEVER happened before! 🏈\n\nWill this end up a #SCORIGAMI? Comment your guess!`
+        : `Live update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami yet.\n\nWill this end up a #DUKEFBSCORIGAMI? Comment your guess!`;
+
+    await tweet(trimTweet(appendHashtags(message)));
+    await markTweeted(game.id, scoreKey);
+}
+
+async function processCompletedGame(game) {
+    const details = getDukeScoreDetails(game);
+    const { dukeIsHome, dukeScore, oppScore, opponent, scoreKey } = details;
+    if (dukeScore == null || oppScore == null) {
+        console.log(`Skipping completed game ${game.id}: score is incomplete.`);
+        return;
+    }
+    if (await alreadyTweeted(game.id, `${scoreKey}-final`)) return;
+
+    const venue = await getGameVenue(game);
+    logGame(game, venue, details);
+    const scorigamiResult = await isScorigami(dukeScore, oppScore, game);
+    await insertGame(game, venue, dukeIsHome);
+
+    let message;
+    if (scorigamiResult.isScorigami) {
+        message = appendHashtags(
+            `🚨 FINAL SCORIGAMI 🚨\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nThis score has NEVER happened before in Duke football history! 🏈\n\nWhat did you think of the game? Drop your reactions below! 👇`,
+        );
+    } else {
+        const last = getLastScoreOccurrenceFromGames(scorigamiResult.games);
+        let lastStr = '';
+        if (last) {
+            const lastDate = last.date ? new Date(last.date).toLocaleDateString() : 'unknown date';
+            const teamA = last.teamA?.name || 'Duke';
+            const teamB = last.teamB?.name || 'Opponent';
+            let lastVenue = null;
+            try {
+                lastVenue = await getGameVenue(last);
+                console.log('Last venue:', lastVenue);
+            } catch (error) {
+                console.warn('Unable to load the previous venue:', error.message);
+            }
+            const venueStr = lastVenue
+                ? ` at ${lastVenue.name}, ${lastVenue.city}, ${lastVenue.state}`
+                : last.city || last.state
+                    ? ` at ${last.city || ''}${last.city && last.state ? ', ' : ''}${last.state || ''}`
+                    : '';
+            lastStr = `\nLast time: ${teamA} ${last.teamAScore}-${last.teamBScore} ${teamB} on ${lastDate}${venueStr}`;
+        }
+        message = appendHashtags(
+            `Final: Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami — this result has happened ${scorigamiResult.occurrences} times in Duke football history.${lastStr}`,
+        );
+    }
+
+    console.log(message);
+    await tweet(trimTweet(message));
+    await markTweeted(game.id, `${scoreKey}-final`);
+}
 
 export async function run() {
-    // Pregame reminder logic for Wednesday
     try {
-        // Get current date and time in EST (America/New_York)
-        // Support fake date for testing via FAKE_DATE env var (format: YYYY-MM-DD)
-        let estDate;
-        if (process.env.FAKE_DATE) {
-            const fakeDateTime = `${process.env.FAKE_DATE}T12:00:00`;
-            estDate = new Date(fakeDateTime);
-            console.log(`⚠️ Using FAKE_DATE: ${process.env.FAKE_DATE}`);
-        } else {
-            const nowEST = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-            estDate = new Date(nowEST);
-        }
-        const todayDate = estDate.toISOString().split('T')[0];
-        
-        if (estDate.getDay() === 3) { // 3 = Wednesday
-            // Get current time in CST (America/Chicago)
-            const nowCST = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
-            const cstDate = new Date(nowCST);
-            const cstHour = cstDate.getHours();
-            // Only send tweet if time is between 12pm and 1pm CST
-            if (cstHour === 12) {
-                const nextGame = await getNextScheduledDukeGame();
-                if (nextGame) {
-                    const pregameKey = 'pregame';
-                    if (await alreadyTweeted(nextGame.id, pregameKey)) {
-                        console.log('Pregame tweet already sent for this game. Exiting.');
-                        return;
-                    }
-                    const venue = await getGameVenue(nextGame);
-                    const opponent = nextGame.homeTeam === 'Duke' ? nextGame.awayTeam : nextGame.homeTeam;
-                    const gameTime = new Date(nextGame.startDate).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-                    let venueStr = '';
-                    if (venue) {
-                        venueStr = `${venue.name}, ${venue.city}, ${venue.state}`;
-                    } else if (nextGame.city || nextGame.state) {
-                        venueStr = `${nextGame.city || ''}${nextGame.city && nextGame.state ? ', ' : ''}${nextGame.state || ''}`;
-                    }
-                    let pregameMsg = `🏈 Reminder, Duke's next game is coming up!! 🏈\nDuke vs ${opponent}\nWhen: ${gameTime}\nWhere: ${venueStr}\n\nDrop your score predictions in the comments! 👇`;
-                    // Append tagged accounts
-                    if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
-                        pregameMsg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
-                    }
-                    if (HASHTAGS && HASHTAGS.length > 0) {
-                        pregameMsg += `\n${HASHTAGS.join(' ')}`;
-                    }
-                    const tweetResult = await tweet(trimTweet(pregameMsg));
-                    console.log('Tweet result:', tweetResult);
-                    if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
-                        await markTweeted(nextGame.id, pregameKey);
-                    }
-                }
-            } else {
-                console.log('It is Wednesday, but not between noon and 1pm CST. Pregame tweet will not be sent.');
-            }
+        const now = getReferenceDate();
+        const todayDate = getDateKey(now, 'America/New_York');
+        const games = await getDukeGames();
+
+        await sendPregameReminder(games, now);
+
+        const backfillDays = getBackfillDays();
+        const recentCompletedGames = getRecentCompletedDukeGames(games, now, backfillDays);
+        console.log(`Checking ${recentCompletedGames.length} completed game(s) from the last ${backfillDays} day(s).`);
+        for (const completedGame of recentCompletedGames) {
+            await processCompletedGame(completedGame);
         }
 
-        let game;
-        console.log('Checking Duke game...');
-        game = await getDukeGame(todayDate);
+        const game = await getDukeGame(todayDate, games);
         if (!game) return console.log('No Duke game today.');
 
+        const details = getDukeScoreDetails(game);
         const venue = await getGameVenue(game);
-        const dukeIsHome = game.homeTeam === 'Duke';
-        if (venue) {
-            if (dukeIsHome) {
-                console.log(`Duke vs ${game.awayTeam} at ${venue.name}, ${venue.city}, ${venue.state}`);
-            } else {
-                console.log(`${game.homeTeam} vs Duke at ${venue.name}, ${venue.city}, ${venue.state}`);
-            }
-        } else {
-            console.log('Venue info not found');
-        }
+        logGame(game, venue, details);
 
-        const dukeScore = dukeIsHome ? game.homePoints : game.awayPoints;
-        const oppScore = dukeIsHome ? game.awayPoints : game.homePoints;
-        const opponent = dukeIsHome ? game.awayTeam : game.homeTeam;
-        const scoreKey = `${dukeScore}-${oppScore}`;
-
-        if (dukeScore == null || oppScore == null) {
+        if (details.dukeScore == null || details.oppScore == null) {
             console.log('Game not started yet.');
             return;
         }
 
-        // In-progress
-        if (!game.completed) {
-            const scorigamiResult = await isScorigami(dukeScore, oppScore);
-            if (!(await alreadyTweeted(game.id, scoreKey))) {
-                let msg = scorigamiResult.isScorigami
-                    ? `👀 In-progress update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nIf this holds, it'll be a #DUKEFBSCORIGAMI — a score that's NEVER happened before! 🏈\n\nWill this end up a #SCORIGAMI? Comment your guess!`
-                    : `Live update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami yet.\n\nWill this end up a #DUKEFBSCORIGAMI? Comment your guess!`;
-                if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
-                    msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
-                }
-                if (HASHTAGS && HASHTAGS.length > 0) {
-                    msg += `\n${HASHTAGS.join(' ')}`;
-                }
-                const tweetResult = await tweet(trimTweet(msg));
-                if (tweetResult !== false && tweetResult !== null && tweetResult !== undefined) {
-                    await markTweeted(game.id, scoreKey);
-                }
-            }
-        }
-
-        // Final
         if (game.completed) {
-            // Insert the completed game into the database
-            const scorigamiResult = await isScorigami(dukeScore, oppScore);
-            await insertGame(game, venue, dukeIsHome);
-            if (!(await alreadyTweeted(game.id, `${scoreKey}-final`))) {
-                let msg;
-                let tweetId = null;
-                if (scorigamiResult.isScorigami) {
-                    msg = `🚨 FINAL SCORIGAMI 🚨\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nThis score has NEVER happened before in Duke football history! 🏈\n\nWhat did you think of the game? Drop your reactions below! 👇`;
-                    if (HASHTAGS && HASHTAGS.length > 0) {
-                        msg += `\n${HASHTAGS.join(' ')}`;
-                    }
-                    console.log(msg)
-                    tweetId = await tweet(trimTweet(msg));
-                    if (tweetId) {
-                        await markTweeted(game.id, `${scoreKey}-final`);
-                        // Reply to the tweet tagging accounts
-                        if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
-                            const replyMsg = `${TAGGED_ACCOUNTS.join(' ')}`;
-                            await tweet(replyMsg, tweetId);
-                        }
-                    }
-                } else {
-                    // Use games array for last occurrence and count
-                    const last = getLastScoreOccurrenceFromGames(scorigamiResult.games);
-                    console.log('Last occurrence of this score:', last);
-                    const occurrences = scorigamiResult.occurrences;
-                    let lastStr = '';
-                    if (last) {
-                        const lastDate = last.date ? new Date(last.date).toLocaleDateString() : 'unknown date';
-                        const teamA = last.teamA?.name || 'Duke';
-                        const teamB = last.teamB?.name || 'Opponent';
-                        let venueStr = '';
-                        // Try to get venue info for the last game
-                        let lastVenue = null;
-                        try {
-                            lastVenue = await getGameVenue(last);
-                            console.log('Last venue:', lastVenue);
-                        } catch { }
-                        if (lastVenue) {
-                            venueStr = ` at ${lastVenue.name}, ${lastVenue.city}, ${lastVenue.state}`;
-                        } else if (last.city || last.state) {
-                            venueStr = ` at ${last.city || ''}${last.city && last.state ? ', ' : ''}${last.state || ''}`;
-                        }
-                        lastStr = `\nLast time: ${teamA} ${last.teamAScore}-${last.teamBScore} ${teamB} on ${lastDate}${venueStr}`;
-                    }
-                    msg = `Final: Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami — this result has happened ${occurrences} times in Duke football history.${lastStr}`;
-                    if (TAGGED_ACCOUNTS && TAGGED_ACCOUNTS.length > 0) {
-                        msg += `\n\n${TAGGED_ACCOUNTS.join(' ')}`;
-                    }
-                    if (HASHTAGS && HASHTAGS.length > 0) {
-                        msg += `\n${HASHTAGS.join(' ')}`;
-                    }
-                    console.log(msg)
-                    tweetId = await tweet(trimTweet(msg));
-                    if (tweetId) {
-                        await markTweeted(game.id, `${scoreKey}-final`);
-                    }
-                }
-            }
+            await processCompletedGame(game);
+        } else {
+            await processLiveGame(game);
         }
     } catch (err) {
         console.error('Fatal error in run():', err);
+        throw err;
     }
 }
 
-run();
-
+if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
+    run().catch(() => {
+        process.exitCode = 1;
+    });
+}
