@@ -1,7 +1,12 @@
 import {
   getDukeScoreDetails,
   getRecentCompletedDukeGames,
+  getWinsipediaSeasonUrl,
 } from './gameUtils.js';
+
+test('builds a stable Winsipedia season URL', () => {
+  expect(getWinsipediaSeasonUrl(2026)).toBe('https://www.winsipedia.com/duke/schedule/2026');
+});
 
 describe('getDukeScoreDetails', () => {
   test('uses Duke home and away scores correctly', () => {

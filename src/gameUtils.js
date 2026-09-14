@@ -1,5 +1,9 @@
 export const DEFAULT_BACKFILL_DAYS = 30;
 
+export function getWinsipediaSeasonUrl(season) {
+  return `https://www.winsipedia.com/duke/schedule/${season}`;
+}
+
 export function getDukeScoreDetails(game) {
   const dukeIsHome = game.homeTeam === 'Duke';
   const dukeScore = dukeIsHome ? game.homePoints : game.awayPoints;

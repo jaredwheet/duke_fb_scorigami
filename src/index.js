@@ -4,8 +4,14 @@ import { getDukeGame, getDukeGames, getGameVenue, getNextScheduledDukeGame } fro
 import { isScorigami, getLastScoreOccurrenceFromGames } from './scorigami.js';
 import { alreadyTweeted, markTweeted, insertGame } from './db.js';
 import { tweet } from './twitterClient.js';
-import { DEFAULT_BACKFILL_DAYS, getDukeScoreDetails, getRecentCompletedDukeGames } from './gameUtils.js';
+import { DEFAULT_BACKFILL_DAYS, getDukeScoreDetails, getRecentCompletedDukeGames, getWinsipediaSeasonUrl } from './gameUtils.js';
 import { HASHTAGS } from './tweetConfig.js';
+
+const TEMPLATE_VERSION = 'v2';
+
+function getTweetUrl(tweetId) {
+    return `https://x.com/i/web/status/${tweetId}`;
+}
 
 function getDatePart(date, timeZone, type) {
     return new Intl.DateTimeFormat('en-US', {
@@ -56,6 +62,13 @@ function appendHashtags(message, separator = '\n') {
     return HASHTAGS.length > 0 ? `${message}${separator}${HASHTAGS.join(' ')}` : message;
 }
 
+function appendSeasonLink(message, season) {
+    const seasonUrl = getWinsipediaSeasonUrl(season);
+    const hashtags = HASHTAGS.length > 0 ? `\n${HASHTAGS.join(' ')}` : '';
+    const suffix = `\nSeason details: ${seasonUrl}${hashtags}`;
+    return `${trimTweet(message, 280 - suffix.length)}${suffix}`;
+}
+
 function formatVenue(venue, game) {
     if (venue) return `${venue.name}, ${venue.city}, ${venue.state}`;
     if (game.city || game.state) {
@@ -103,7 +116,12 @@ async function sendPregameReminder(games, now) {
 
     const tweetId = await tweet(trimTweet(pregameMsg));
     console.log('Tweet result:', tweetId);
-    await markTweeted(nextGame.id, 'pregame');
+    await markTweeted(nextGame.id, 'pregame', {
+        tweetId,
+        tweetUrl: getTweetUrl(tweetId),
+        contentType: 'pregame',
+        templateVersion: TEMPLATE_VERSION,
+    });
 }
 
 async function processLiveGame(game) {
@@ -116,11 +134,16 @@ async function processLiveGame(game) {
 
     const scorigamiResult = await isScorigami(dukeScore, oppScore, game);
     const message = scorigamiResult.isScorigami
-        ? `👀 In-progress update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nIf this holds, it'll be a #DUKEFBSCORIGAMI — a score that's NEVER happened before! 🏈\n\nWill this end up a #SCORIGAMI? Comment your guess!`
-        : `Live update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami yet.\n\nWill this end up a #DUKEFBSCORIGAMI? Comment your guess!`;
+        ? `👀 Live score watch:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nIf it holds, this would be a new score pair.\n\nWhat do you think?`
+        : `Live score update:\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nNot a new score pair yet.`;
 
-    await tweet(trimTweet(appendHashtags(message)));
-    await markTweeted(game.id, scoreKey);
+    const tweetId = await tweet(trimTweet(appendHashtags(message)));
+    await markTweeted(game.id, scoreKey, {
+        tweetId,
+        tweetUrl: getTweetUrl(tweetId),
+        contentType: 'live',
+        templateVersion: TEMPLATE_VERSION,
+    });
 }
 
 async function processCompletedGame(game) {
@@ -139,16 +162,18 @@ async function processCompletedGame(game) {
 
     let message;
     if (scorigamiResult.isScorigami) {
-        message = appendHashtags(
-            `🚨 FINAL SCORIGAMI 🚨\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nThis score has NEVER happened before in Duke football history! 🏈\n\nWhat did you think of the game? Drop your reactions below! 👇`,
+        message = appendSeasonLink(
+            `🚨 DUKE SCORIGAMI 🚨\nDuke ${dukeScore}-${oppScore} vs ${opponent}\nThis final score pair had never occurred in Duke football history.\n\nWhat score will Duke produce next?`,
+            game.season,
         );
     } else {
         const last = getLastScoreOccurrenceFromGames(scorigamiResult.games);
         let lastStr = '';
         if (last) {
             const lastDate = last.date ? new Date(last.date).toLocaleDateString() : 'unknown date';
-            const teamA = last.teamA?.name || 'Duke';
-            const teamB = last.teamB?.name || 'Opponent';
+            const lastOpponent = last.teamA?.name === 'Duke'
+                ? last.teamB?.name || 'Opponent'
+                : last.teamA?.name || 'Opponent';
             let lastVenue = null;
             try {
                 lastVenue = await getGameVenue(last);
@@ -161,16 +186,23 @@ async function processCompletedGame(game) {
                 : last.city || last.state
                     ? ` at ${last.city || ''}${last.city && last.state ? ', ' : ''}${last.state || ''}`
                     : '';
-            lastStr = `\nLast time: ${teamA} ${last.teamAScore}-${last.teamBScore} ${teamB} on ${lastDate}${venueStr}`;
+            lastStr = `\nPrevious: Duke ${last.teamAScore}-${last.teamBScore} vs ${lastOpponent} on ${lastDate}${venueStr}`;
         }
-        message = appendHashtags(
-            `Final: Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a Scorigami — this result has happened ${scorigamiResult.occurrences} times in Duke football history.${lastStr}`,
+        const occurrenceLabel = scorigamiResult.occurrences === 1 ? 'time' : 'times';
+        message = appendSeasonLink(
+            `Duke ${dukeScore}-${oppScore} vs ${opponent}\nNot a new score pair. This score pair has occurred ${scorigamiResult.occurrences} ${occurrenceLabel} in Duke football history.${lastStr}`,
+            game.season,
         );
     }
 
     console.log(message);
-    await tweet(trimTweet(message));
-    await markTweeted(game.id, `${scoreKey}-final`);
+    const tweetId = await tweet(trimTweet(message));
+    await markTweeted(game.id, `${scoreKey}-final`, {
+        tweetId,
+        tweetUrl: getTweetUrl(tweetId),
+        contentType: scorigamiResult.isScorigami ? 'final_scorigami' : 'final',
+        templateVersion: TEMPLATE_VERSION,
+    });
 }
 
 export async function run() {

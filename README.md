@@ -29,9 +29,11 @@ BACKFILL_DAYS=14 node src/index.js
 
 ## GitHub Actions
 
-The scheduled workflow requires these repository secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `CFB_DATA_KEY`, `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, and `TWITTER_ACCESS_SECRET`.
+The scheduled workflow requires these repository secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CFB_DATA_KEY`, `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, and `TWITTER_ACCESS_SECRET`. The service-role key is server-only and must never be exposed in a public site or client application.
 
 The workflow runs every 15 minutes. A manual run accepts `backfill_days`, which defaults to 30. Account mentions are disabled; the configured hashtags remain.
+
+Before deploying the post-metadata release, run `supabase/migrations/20260914_add_post_metadata.sql` in the production Supabase SQL Editor. It adds tweet IDs, URLs, content types, external game IDs, unique event indexes, and enables RLS on the bot tables. Add `SUPABASE_SERVICE_ROLE_KEY` to GitHub Actions before running the updated workflow.
 
 ## Project Structure
 

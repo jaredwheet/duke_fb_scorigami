@@ -17,6 +17,7 @@ export const tweet = async (msg, inReplyToTweetId = null) => {
     console.log('Tweeted:', msg);
     const tweetId = result?.data?.id;
     if (!tweetId) throw new Error('Twitter API returned no tweet ID');
+    console.log(`Tweet URL: https://x.com/i/web/status/${tweetId}`);
     return tweetId;
   } catch (err) {
     console.error('Twitter error:', err);

@@ -12,10 +12,21 @@ export async function alreadyTweeted(gameId, scoreKey) {
 }
 
 
-export async function markTweeted(gameId, scoreKey) {
+export async function markTweeted(
+  gameId,
+  scoreKey,
+  { tweetId = null, tweetUrl = null, contentType = null, templateVersion = null } = {},
+) {
   const { error } = await supabase
     .from('tweeted_scores')
-    .insert({ game_id: gameId, score_key: scoreKey });
+    .insert({
+      game_id: gameId,
+      score_key: scoreKey,
+      tweet_id: tweetId,
+      tweet_url: tweetUrl,
+      content_type: contentType,
+      template_version: templateVersion,
+    });
   if (error) throw error;
 }
 
@@ -23,6 +34,24 @@ export async function markTweeted(gameId, scoreKey) {
 export async function insertGame(game, venue, dukeIsHome) {
   const teamAScore = dukeIsHome ? game.homePoints : game.awayPoints;
   const teamBScore = dukeIsHome ? game.awayPoints : game.homePoints;
+  const homeTeam = {
+    id: game.homeId,
+    name: game.homeTeam,
+    conference: game.homeConference,
+    classification: game.homeClassification,
+    pregameElo: game.homePregameElo,
+    postgameElo: game.homePostgameElo,
+  };
+  const awayTeam = {
+    id: game.awayId,
+    name: game.awayTeam,
+    conference: game.awayConference,
+    classification: game.awayClassification,
+    pregameElo: game.awayPregameElo,
+    postgameElo: game.awayPostgameElo,
+  };
+  const teamA = dukeIsHome ? homeTeam : awayTeam;
+  const teamB = dukeIsHome ? awayTeam : homeTeam;
   const { data: existingGames, error: lookupError } = await supabase
     .from('duke_football_games')
     .select('date, season, week, teamAScore, teamBScore')
@@ -45,6 +74,7 @@ export async function insertGame(game, venue, dukeIsHome) {
 
   const { error } = await supabase.from('duke_football_games').insert({
     date: game.startDate,
+    external_game_id: game.id,
     season: game.season,
     week: game.week,
     teamAScore,
@@ -53,22 +83,8 @@ export async function insertGame(game, venue, dukeIsHome) {
     city: venue && venue.city ? venue.city : null,
     state: venue && venue.state ? venue.state : null,
     notes: game.notes,
-    teamA: {
-      id: game.homeId,
-      name: game.homeTeam,
-      conference: game.homeConference,
-      classification: game.homeClassification,
-      pregameElo: game.homePregameElo,
-      postgameElo: game.homePostgameElo
-    },
-    teamB: {
-      id: game.awayId,
-      name: game.awayTeam,
-      conference: game.awayConference,
-      classification: game.awayClassification,
-      pregameElo: game.awayPregameElo,
-      postgameElo: game.awayPostgameElo
-    },
+    teamA,
+    teamB,
   });
   if (error) throw error;
 }
