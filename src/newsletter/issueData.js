@@ -264,7 +264,7 @@ function getTotalOffenseNumber(detailsPayload, dukeName, opponent) {
   };
 }
 
-function getTurningPoint(plays, dukeName, playerNames = []) {
+function getTurningPoint(plays, dukeName, opponentName, playerNames = []) {
   const ordered = (plays || []).slice().sort((left, right) => {
     const periodDifference = Number(left.period || 0) - Number(right.period || 0);
     if (periodDifference !== 0) return periodDifference;
@@ -281,6 +281,30 @@ function getTurningPoint(plays, dukeName, playerNames = []) {
   };
   const player = (play) => resolvePlayer(play.playText);
   const time = (play) => `${String(play.clock?.minutes ?? 0).padStart(2, '0')}:${String(play.clock?.seconds ?? 0).padStart(2, '0')}`;
+  const quarter = (play) => ['first', 'second', 'third', 'fourth'][Number(play.period) - 1] || 'overtime';
+  const scoresFor = (play) => {
+    const offenseScore = Number(play.offenseScore);
+    const defenseScore = Number(play.defenseScore);
+    if (!Number.isFinite(offenseScore) || !Number.isFinite(defenseScore)) return null;
+    if (play.offense === dukeName) return { duke: offenseScore, opponent: defenseScore };
+    if (play.defense === dukeName) return { duke: defenseScore, opponent: offenseScore };
+    return null;
+  };
+  let previousScores = null;
+  const scoreContext = new Map();
+  for (const play of ordered) {
+    const after = scoresFor(play);
+    scoreContext.set(play, { before: previousScores, after });
+    if (after) previousScores = after;
+  }
+  const situation = (play, context = scoreContext.get(play)) => {
+    const timeText = Number(play.period) >= 5
+      ? 'in overtime'
+      : `with ${time(play)} left in the ${quarter(play)} quarter`;
+    const after = context?.after;
+    const scoreText = after ? `Duke ${after.duke}, ${opponentName} ${after.opponent}` : null;
+    return `${timeText}${scoreText ? ` (${scoreText})` : ''}`;
+  };
   const fakePunt = dukePlays.find((play) => /fake punt|punt fake|fake field goal/i.test(play.playText || ''));
   if (fakePunt) {
     return {
@@ -288,8 +312,8 @@ function getTurningPoint(plays, dukeName, playerNames = []) {
       period: fakePunt.period,
       time: time(fakePunt),
       description: player(fakePunt)
-        ? `${player(fakePunt)} caught Illinois napping on a fake punt.`
-        : 'Duke caught Illinois napping on a fake punt.',
+        ? `${player(fakePunt)} caught ${opponentName} napping on a fake punt ${situation(fakePunt)}.`
+        : `Duke caught ${opponentName} napping on a fake punt ${situation(fakePunt)}.`,
       playText: fakePunt.playText,
       factsUsed: ['game.scoring_plays'],
     };
@@ -303,7 +327,7 @@ function getTurningPoint(plays, dukeName, playerNames = []) {
       type: 'fourth_down_stop',
       period: fourthDownStop.period,
       time: time(fourthDownStop),
-      description: 'Duke got a fourth-down stop when Illinois needed to keep the drive alive.',
+      description: `Duke got a fourth-down stop when ${opponentName} needed to keep the drive alive ${situation(fourthDownStop)}.`,
       playText: fourthDownStop.playText,
       factsUsed: ['game.scoring_plays'],
     };
@@ -315,11 +339,16 @@ function getTurningPoint(plays, dukeName, playerNames = []) {
     const passer = resolvePlayer(touchdownPass?.[1]);
     const receiver = resolvePlayer(touchdownPass?.[2]);
     const rusher = player(touchdown);
+    const context = scoreContext.get(touchdown);
+    const leadText = context?.after?.duke > context?.after?.opponent
+      && context?.before?.duke <= context?.before?.opponent
+      ? `, putting Duke ahead ${context.after.duke}-${context.after.opponent}`
+      : '';
     const description = passer && receiver
-      ? `${passer} found ${receiver} for a second-half touchdown.`
+      ? `${passer} found ${receiver} for a touchdown ${situation(touchdown)}${leadText}.`
       : rusher
-        ? `${rusher} scored a second-half touchdown.`
-        : 'Duke scored a second-half touchdown.';
+        ? `${rusher} scored a touchdown ${situation(touchdown)}${leadText}.`
+        : `Duke scored a second-half touchdown ${situation(touchdown)}${leadText}.`;
     return {
       type: 'touchdown',
       period: touchdown.period,
@@ -341,8 +370,8 @@ function getTurningPoint(plays, dukeName, playerNames = []) {
       period: explosivePlay.period,
       time: time(explosivePlay),
       description: name
-        ? `${name} broke free for ${Number(explosivePlay.yardsGained)} yards.`
-        : `Duke broke free for ${Number(explosivePlay.yardsGained)} yards.`,
+        ? `${name} broke free for ${Number(explosivePlay.yardsGained)} yards ${situation(explosivePlay)}.`
+        : `Duke broke free for ${Number(explosivePlay.yardsGained)} yards ${situation(explosivePlay)}.`,
       playText: explosivePlay.playText,
       factsUsed: ['game.scoring_plays'],
     };
@@ -480,7 +509,7 @@ export function buildSundayIssueData({
   const playerNames = getPlayerBoxes(detailsPayload)
     .flatMap((team) => (team.categories || []).flatMap((category) => (category.types || []).flatMap((type) => (type.athletes || []).map((athlete) => athlete.name))))
     .filter(Boolean);
-  const turningPoint = getTurningPoint(plays, dukeName, playerNames);
+  const turningPoint = getTurningPoint(plays, dukeName, scores.opponent, playerNames);
   const winExpectancySnapshots = calculateWinExpectancySnapshots({
     plays,
     dukeName,
