@@ -50,7 +50,7 @@ test('runs specialized agents against one packet and merges only editorial field
     scorigami_context: 'Old score context',
     guide_context: { opponentHistory: { statement: 'The series is now tied 2-2.' } },
     acc_context: { standings: [], results: [] },
-  }, { client });
+  }, { client, apiKey: 'test-key', discoverSources: async () => [] });
 
   expect(result.mode).toBe('multi-agent');
   expect(result.validation.approved).toBe(true);

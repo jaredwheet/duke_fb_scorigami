@@ -11,7 +11,7 @@ function freeze(value) {
   return value;
 }
 
-export function buildIssuePacket(issueData = {}) {
+export function buildIssuePacket(issueData = {}, { externalSources = [], discoveredMoments = [] } = {}) {
   const scoreParts = String(issueData.current_score || '').split('-').map(Number);
   const currentDukeScore = Number.isFinite(scoreParts[0]) ? scoreParts[0] : null;
   const currentOpponentScore = Number.isFinite(scoreParts[1]) ? scoreParts[1] : null;
@@ -46,6 +46,8 @@ export function buildIssuePacket(issueData = {}) {
       guide: clone(issueData.guide_context || {}),
       acc: clone(issueData.acc_context || {}),
       turningPoint: clone(issueData.turning_point),
+      externalSources: clone(externalSources),
+      discoveredMoments: clone(discoveredMoments),
     },
     allowedFactRefs: [
       'game.score',
@@ -58,6 +60,7 @@ export function buildIssuePacket(issueData = {}) {
       'scorigami',
       'history',
       'acc',
+      'moment',
     ],
   };
   return freeze(packet);

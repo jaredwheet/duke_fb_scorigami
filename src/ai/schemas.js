@@ -43,3 +43,29 @@ export const momentSchema = {
   },
   required: ['blurb', 'factsUsed', 'warnings'],
 };
+
+export const momentScoutSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    candidates: {
+      type: 'array',
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          type: { type: 'string' },
+          claim: { type: 'string' },
+          evidence: { type: 'string' },
+          sourceUrls: { type: 'array', items: { type: 'string' } },
+          confidence: { type: 'string', enum: ['lead', 'corroborated'] },
+          factsUsed: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['type', 'claim', 'evidence', 'sourceUrls', 'confidence', 'factsUsed'],
+      },
+    },
+    warnings: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['candidates', 'warnings'],
+};

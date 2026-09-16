@@ -4,6 +4,8 @@ import { runHistoryAgent } from './agents/historyAgent.js';
 import { runRecapAgent } from './agents/recapAgent.js';
 import { runScorigamiAgent } from './agents/scorigamiAgent.js';
 import { runMomentAgent } from './agents/momentAgent.js';
+import { runMomentScoutAgent } from './agents/momentScoutAgent.js';
+import { discoverMomentSources } from './moments/sourceDiscovery.js';
 import { validateEditorialPackage } from './validateEditorial.js';
 
 function applyEditorial(issueData, editorial) {
@@ -29,10 +31,23 @@ function applyEditorial(issueData, editorial) {
 }
 
 export async function runEditorialOrchestrator(issueData, options = {}) {
-  const packet = buildIssuePacket(issueData);
   const modelAvailable = options.apiKey !== undefined
     ? Boolean(options.apiKey)
     : Boolean(options.client || process.env.OPENAI_API_KEY);
+  let externalSources = [];
+  let discoveredMoments = [];
+  if (modelAvailable) {
+    try {
+      const discoverSources = options.discoverSources || discoverMomentSources;
+      externalSources = await discoverSources({ issueData });
+      const scoutPacket = buildIssuePacket(issueData, { externalSources });
+      discoveredMoments = (await runMomentScoutAgent(scoutPacket, options)).candidates || [];
+    } catch {
+      externalSources = [];
+      discoveredMoments = [];
+    }
+  }
+  const packet = buildIssuePacket(issueData, { externalSources, discoveredMoments });
   const [recap, scorigami, history, acc, moment] = await Promise.all([
     runRecapAgent(packet, options),
     runScorigamiAgent(packet, options),
