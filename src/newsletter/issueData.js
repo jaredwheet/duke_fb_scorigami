@@ -313,6 +313,14 @@ function getTurningPoint(plays, dukeName, opponentName, playerNames = [], larges
     if (rush) return `${resolvePlayer(rush[1])} rushed for ${rush[2]} yards and a touchdown`;
     const fieldGoal = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+field goal attempt from\s+(\d+)/i);
     if (fieldGoal) return `${resolvePlayer(fieldGoal[1])} hit a ${fieldGoal[2]}-yard field goal`;
+    const compact = compactScoringDescription({ playText: text, playType: play?.playType });
+    if (compact && compact !== play?.playType && compact !== 'Scoring play') {
+      return playerNames.reduce((description, name) => {
+        const surname = name.split(' ').at(-1);
+        if (description.toLowerCase().includes(name.toLowerCase())) return description;
+        return description.replace(new RegExp(`\\b${surname}\\b`, 'i'), name);
+      }, compact);
+    }
     return null;
   };
   if (largestSwing?.delta >= 8 && largestSwing.playText && !/field goal/i.test(largestSwing.playText)) {
@@ -323,7 +331,7 @@ function getTurningPoint(plays, dukeName, opponentName, playerNames = [], larges
     const swingScore = largestSwing.dukeScore != null
       ? ` (Duke ${largestSwing.dukeScore}, ${opponentName} ${largestSwing.opponentScore})`
       : '';
-    const playDescription = describePlay(largestSwing.play) || 'Duke made a major play';
+    const playDescription = describePlay(largestSwing.play || largestSwing) || largestSwing.playText || 'a verified Duke play';
     return {
       type: 'win_probability_swing',
       period: largestSwing.period,
