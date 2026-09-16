@@ -1,4 +1,6 @@
 import { detectEvents, EVENT_LOGIC_VERSION } from '../eventDetector.js';
+import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
+import { calculateGameNarrativeFacts } from './gameNarrativeFacts.js';
 import { calculateDukeScoreFacts } from './scoreFacts.js';
 
 export async function fetchAllRows(client, table, columns, { pageSize = 500 } = {}) {
@@ -16,10 +18,11 @@ export async function fetchAllRows(client, table, columns, { pageSize = 500 } = 
 }
 
 async function loadCanonicalGames(client) {
-  const [games, participants, teams] = await Promise.all([
+  const [games, participants, teams, analytics] = await Promise.all([
     fetchAllRows(client, 'games', 'id, canonical_key, season, start_at, status'),
     fetchAllRows(client, 'game_participants', 'id, game_id, team_id, participant_role, score'),
     fetchAllRows(client, 'teams', 'id, slug, name'),
+    fetchAllRows(client, 'game_analytics', 'id, game_id, provider, metric_set, payload'),
   ]);
 
   const teamsById = new Map((teams || []).map((team) => [team.id, team]));
@@ -34,16 +37,42 @@ async function loadCanonicalGames(client) {
     participantsByGame.set(participant.game_id, list);
   }
 
+  const analyticsByGame = new Map();
+  for (const analytic of analytics || []) {
+    if (analytic.provider !== 'cfbdata' || analytic.metric_set !== 'game_details') continue;
+    analyticsByGame.set(analytic.game_id, analytic.payload || {});
+  }
+
   return (games || []).map((game) => ({
-    ...game,
+    id: game.id,
+    canonicalKey: game.canonical_key,
+    season: game.season,
+    startAt: game.start_at,
+    status: game.status,
     participants: participantsByGame.get(game.id) || [],
+    detailsPayload: analyticsByGame.get(game.id) || {},
   }));
 }
 
 export async function refreshDukeFacts(client = null) {
   const db = client || (await import('../supabaseClient.js')).default;
   const games = await loadCanonicalGames(db);
-  const calculatedFacts = calculateDukeScoreFacts(games);
+  const guide = loadMediaGuide();
+  const calculatedFacts = calculateDukeScoreFacts(games).map((result) => {
+    const game = games.find((candidate) => candidate.id === result.gameId);
+    const narrativeFacts = calculateGameNarrativeFacts({
+      game,
+      detailsPayload: game?.detailsPayload,
+      guide,
+    });
+    return {
+      ...result,
+      facts: {
+        ...result.facts,
+        ...narrativeFacts,
+      },
+    };
+  });
 
   for (const result of calculatedFacts) {
     const { error: factError } = await db
@@ -58,7 +87,7 @@ export async function refreshDukeFacts(client = null) {
 
     const game = games.find((candidate) => candidate.id === result.gameId);
     const detection = detectEvents({
-      canonicalKey: game.canonical_key,
+      canonicalKey: game.canonicalKey,
       facts: result.facts,
     });
     for (const directive of detection.directives) {

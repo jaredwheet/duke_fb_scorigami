@@ -27,13 +27,20 @@ function buildQuarterRows(rows = []) {
 }
 
 function buildScoringRows(rows = []) {
-  return rows.map((row) => `
-    <tr style="border-bottom:1px solid #607080;">
-      <td width="16%" style="padding:4px 6px 4px 0;white-space:nowrap;vertical-align:top;">${escapeHtml(row.team)}</td>
-      <td width="24%" style="padding:4px 6px 4px 0;white-space:nowrap;vertical-align:top;">${escapeHtml(row.period)}</td>
-      <td width="60%" style="padding:4px 0;vertical-align:top;">${escapeHtml(row.description)}</td>
-    </tr>
-  `).join('');
+  const quarterNames = ['FIRST QUARTER', 'SECOND QUARTER', 'THIRD QUARTER', 'FOURTH QUARTER'];
+  let previousQuarter = null;
+  return rows.map((row) => {
+    const quarterHeading = previousQuarter === row.quarter ? '' : `<tr><th colspan="3" align="left" style="padding:8px 0 3px;font-size:10px;letter-spacing:1px;">${escapeHtml(quarterNames[(row.quarter || 1) - 1] || 'SCORING PLAYS')}</th></tr>`;
+    previousQuarter = row.quarter;
+    return `
+      ${quarterHeading}
+      <tr style="border-bottom:1px solid #607080;">
+        <td width="16%" style="padding:4px 6px 4px 0;white-space:nowrap;vertical-align:top;">${escapeHtml(row.team)}</td>
+        <td width="24%" style="padding:4px 6px 4px 0;white-space:nowrap;vertical-align:top;">${escapeHtml(row.period)}</td>
+        <td width="60%" style="padding:4px 0;vertical-align:top;">${escapeHtml(row.description)}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function buildLeaderRows(title, rows = []) {
@@ -52,13 +59,126 @@ function buildLeaderRows(title, rows = []) {
 }
 
 function buildAccRows(rows = []) {
-  return rows.map((row) => `
+  if (Array.isArray(rows)) {
+    if (rows.length === 0) return '<tr><td colspan="3" style="padding:8px 4px;">Conference results are not available.</td></tr>';
+    return rows.map((row) => `
+      <tr style="border-bottom:1px solid #b5ad9f;">
+        <td style="padding:5px 4px;">${escapeHtml(row.winner || row.away)}</td>
+        <td style="padding:5px 4px;">${escapeHtml(row.loser || row.home)}</td>
+        <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.score)}</td>
+      </tr>
+    `).join('');
+  }
+
+  const standings = rows?.standings || [];
+  const results = rows?.results || [];
+  const editorialBlurb = rows?.editorialBlurb || '';
+  const standingsRows = standings.map((row) => `
     <tr style="border-bottom:1px solid #b5ad9f;">
-      <td style="padding:5px 4px;">${escapeHtml(row.away)}</td>
-      <td style="padding:5px 4px;">${escapeHtml(row.home)}</td>
+      <td style="padding:5px 4px;">${escapeHtml(row.rank ? `#${row.rank} ${row.team}` : row.team)}</td>
+      <td align="right" style="padding:5px 4px;">${escapeHtml(row.conferenceRecord)}</td>
+      <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.overallRecord)}</td>
+    </tr>
+  `).join('');
+  const resultRows = results.map((row) => `
+    <tr style="border-bottom:1px solid #b5ad9f;">
+      <td style="padding:5px 4px;">${escapeHtml(row.winner)}</td>
+      <td style="padding:5px 4px;">${escapeHtml(row.loser)}</td>
       <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.score)}</td>
     </tr>
   `).join('');
+  const empty = '<tr><td colspan="3" style="padding:8px 4px;">Conference results are not available.</td></tr>';
+  return `
+    <tr><th colspan="3" align="left" style="padding:8px 4px 4px;font-size:11px;letter-spacing:2px;">ACC STANDINGS</th></tr>
+    <tr style="border-bottom:1px solid #101820;">
+      <th align="left" style="padding:4px;">TEAM</th>
+      <th align="right" style="padding:4px;">CONF.</th>
+      <th align="right" style="padding:4px;">OVERALL</th>
+    </tr>
+    ${standingsRows || empty}
+    ${editorialBlurb ? `<tr><td colspan="3" style="padding:10px 4px 2px;font-family:Georgia, 'Times New Roman', serif;font-size:13px;line-height:1.35;">${escapeHtml(editorialBlurb)}</td></tr>` : ''}
+    <tr><th colspan="3" align="left" style="padding:18px 4px 4px;font-size:11px;letter-spacing:2px;">YESTERDAY'S RESULTS</th></tr>
+    <tr style="border-bottom:1px solid #101820;">
+      <th align="left" style="padding:4px;">WINNER</th>
+      <th align="left" style="padding:4px;">LOSER</th>
+      <th align="right" style="padding:4px;">SCORE</th>
+    </tr>
+    ${resultRows || empty}
+  `;
+}
+
+function formatQuarter(value) {
+  const match = String(value || '').match(/^Q([1-4])\s+(\d{2}:\d{2})$/);
+  if (!match) return null;
+  const quarter = ['first', 'second', 'third', 'fourth'][Number(match[1]) - 1];
+  return { quarter, time: match[2] };
+}
+
+function buildGuideSections(context = null) {
+  if (!context) return '';
+  const blocks = [];
+
+  if (context.recordWatch) {
+    blocks.push(`
+      <mj-section background-color="#003087" padding="20px 24px">
+        <mj-column>
+          <mj-text color="#ffffff" font-size="12px" letter-spacing="3px" font-weight="700">RECORD WATCH</mj-text>
+          <mj-text color="#ffffff" font-family="Georgia, 'Times New Roman', serif" font-size="22px" line-height="1.2" font-weight="800" padding-top="8px">${escapeHtml(context.recordWatch.statement)}</mj-text>
+          <mj-text color="#ffffff" font-size="10px" padding-top="8px">Media guide, p. ${escapeHtml(context.recordWatch.citation?.pageStart)}</mj-text>
+        </mj-column>
+      </mj-section>
+    `);
+  }
+
+  const facts = [
+    context.editorialMoment
+      ? { label: 'THE MOMENT', detail: context.editorialMoment }
+      : null,
+    context.comeback?.comeback
+      ? { label: 'COMEBACK', detail: `Duke trailed by ${context.comeback.largestDeficit} points${formatQuarter(context.comeback.trailingAt) ? ` in the ${formatQuarter(context.comeback.trailingAt).quarter} quarter` : ''} before rallying.` }
+      : null,
+    context.lateGame?.lateGameWin
+      ? { label: 'LATE GAME', detail: Number(context.lateGame.period) >= 5
+        ? 'Duke took the lead in overtime.'
+        : `Duke took the lead with ${context.lateGame.time} to play in the ${['first', 'second', 'third', 'fourth'][Number(context.lateGame.period) - 1]} quarter.` }
+      : null,
+    context.editorialHistory
+      ? { label: 'DUKE HISTORY', detail: context.editorialHistory }
+      : context.opponentHistory
+        ? { label: 'SERIES', detail: context.opponentHistory.statement }
+        : context.historicalFact
+          ? { label: 'DUKE HISTORY', detail: context.historicalFact.statement }
+          : null,
+  ].filter(Boolean);
+
+  if (facts.length > 0) {
+    blocks.push(`
+      <mj-section background-color="#f8f4ea" padding="20px 24px 18px">
+        <mj-column>
+          <mj-text font-size="12px" letter-spacing="3px" font-weight="700">FROM THE DUKE RECORD</mj-text>
+          ${facts.map((fact) => `
+            <mj-text font-size="11px" line-height="1.2" letter-spacing="2px" font-weight="700" padding-top="16px">${escapeHtml(fact.label)}</mj-text>
+            <mj-text font-size="14px" line-height="1.45" padding-top="5px">${escapeHtml(fact.detail)}</mj-text>
+          `).join('')}
+        </mj-column>
+      </mj-section>
+    `);
+  }
+
+  return blocks.join('');
+}
+
+function buildWinExpectancySection(chart = null) {
+  if (!chart?.imageSource) return '';
+  return `
+    <mj-section background-color="#f8f4ea" padding="18px 24px 8px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">WIN EXPECTANCY</mj-text>
+        <mj-image src="${escapeHtml(chart.imageSource)}" alt="Duke win expectancy chart" padding-top="10px" padding-bottom="0" />
+        <mj-text font-size="10px" line-height="1.35" color="#607080" padding-top="6px">${escapeHtml(chart.caption || '')}</mj-text>
+      </mj-column>
+    </mj-section>
+  `;
 }
 
 const defaultData = {
@@ -110,11 +230,13 @@ export async function renderDevilInDetails(data = {}) {
     ...input,
     quarter_rows: buildQuarterRows(input.quarters),
     scoring_rows: buildScoringRows(input.scoring_plays),
+    guide_sections: buildGuideSections(input.guide_context),
+    win_expectancy_section: buildWinExpectancySection(input.win_expectancy),
     passing_rows: buildLeaderRows('PASSING', input.leaders?.passing),
     rushing_rows: buildLeaderRows('RUSHING', input.leaders?.rushing),
     receiving_rows: buildLeaderRows('RECEIVING', input.leaders?.receiving),
     defense_rows: buildLeaderRows('DEFENSE', input.leaders?.defense),
-    acc_rows: buildAccRows(input.acc_scores),
+    acc_rows: buildAccRows(input.acc_context || input.acc_scores),
     number_one_value: input.numbers?.[0]?.value || '',
     number_one_label: input.numbers?.[0]?.label || '',
     number_one_detail: input.numbers?.[0]?.detail || '',
@@ -128,7 +250,7 @@ export async function renderDevilInDetails(data = {}) {
 
   const rendered = template.replace(/\{\{([a-z_]+)\}\}/g, (_, key) => {
     const value = values[key] ?? '';
-    return key.endsWith('_rows') ? value : escapeHtml(value);
+    return key.endsWith('_rows') || key.endsWith('_sections') || key.endsWith('_section') ? value : escapeHtml(value);
   });
   const result = await mjml2html(rendered, { validationLevel: 'strict' });
   const errors = result.errors || [];

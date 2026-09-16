@@ -38,6 +38,15 @@ test('returns narrative and statistical directives without calculating facts', (
   });
 });
 
+test('emits a late-game directive when verified facts include a late lead change', () => {
+  const result = detectEvents({
+    canonicalKey: 'football:2026:duke-clemson',
+    facts: { narrative: { lateGameWin: true, period: 4, time: '00:30' } },
+  });
+
+  expect(result.primary).toMatchObject({ directiveKey: 'late_game_win', tier: 2 });
+});
+
 test('returns no directive when verified facts contain no hook', () => {
   expect(buildHeadlineDirective({ facts: {} })).toBeNull();
 });

@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "edition": 2026,
+  "title": "2026 Duke Football Media Guide",
+  "source": {
+    "file": "data/2026_Duke_Football_Media_Guide.pdf",
+    "pageCount": 308,
+    "reviewedAt": "2026-09-16",
+    "notes": [
+      "The PDF is text-readable, but tables require manual validation after extraction.",
+      "The guide contains static preseason and historical information; live game facts remain canonical elsewhere."
+    ]
+  },
+  "citations": {
+    "preview": { "pageStart": 1, "pageEnd": 5, "label": "2026 preview, schedule, roster, and positional breakdown" },
+    "season-review": { "pageStart": 6, "pageEnd": 24, "label": "2025 review, statistics, awards, and departed players" },
+    "annual-ledger": { "pageStart": 26, "pageEnd": 35, "label": "Annual ledger and all-time results" },
+    "series-ledgers": { "pageStart": 36, "pageEnd": 38, "label": "Opponent series ledgers" },
+    "milestones": { "pageStart": 49, "pageEnd": 55, "label": "Milestone games, comebacks, ranked opponents, and late-game wins" },
+    "honors": { "pageStart": 67, "pageEnd": 89, "label": "Honors, Hall of Fame, draft picks, and historical players" },
+    "record-book": { "pageStart": 127, "pageEnd": 208, "label": "Duke statistical record book" },
+    "year-by-year": { "pageStart": 210, "pageEnd": 304, "label": "Year-by-year coaches, lineups, and honors" }
+  },
+  "seasonContext": [
+    {
+      "id": "season-context-2026",
+      "season": 2026,
+      "citationId": "preview",
+      "offense": "Spread",
+      "defense": "Multiple",
+      "previousRecord": { "wins": 9, "losses": 5, "ties": 0 },
+      "previousConferenceRecord": { "wins": 6, "losses": 2, "ties": 0 },
+      "previousConferenceFinish": "ACC Champions",
+      "returningLettermen": 32,
+      "lettermenLostReported": 35,
+      "lettermenLostListed": 36,
+      "startersReturning": 10,
+      "startersLost": 17,
+      "schedule": [
+        { "date": "2026-09-05", "opponent": "Tulane", "opponentSlug": "tulane", "site": "home", "city": "Durham, N.C.", "conferenceGame": false, "network": "ACCN", "time": "3:30 p.m." },
+        { "date": "2026-09-12", "opponent": "Illinois", "opponentSlug": "illinois", "site": "away", "city": "Champaign, Ill.", "conferenceGame": false, "network": "FS1", "time": "3:30 p.m." },
+        { "date": "2026-09-19", "opponent": "Stanford", "opponentSlug": "stanford", "site": "home", "city": "Durham, N.C.", "conferenceGame": true, "network": "The CW", "time": "4 p.m." },
+        { "date": "2026-09-26", "opponent": "William & Mary", "opponentSlug": "william-and-mary", "site": "home", "city": "Durham, N.C.", "conferenceGame": false, "network": "ACCNX", "time": "3:30 p.m." },
+        { "date": "2026-10-10", "opponent": "Georgia Tech", "opponentSlug": "georgia-tech", "site": "away", "city": "Atlanta, Ga.", "conferenceGame": true, "network": "TBA", "time": "TBA" },
+        { "date": "2026-10-17", "opponent": "North Carolina", "opponentSlug": "north-carolina", "site": "home", "city": "Durham, N.C.", "conferenceGame": true, "network": "TBA", "time": "TBA" },
+        { "date": "2026-10-23", "opponent": "Virginia", "opponentSlug": "virginia", "site": "away", "city": "Charlottesville, Va.", "conferenceGame": true, "network": "ESPN", "time": "7 p.m." },
+        { "date": "2026-10-31", "opponent": "Boston College", "opponentSlug": "boston-college", "site": "home", "city": "Durham, N.C.", "conferenceGame": true, "network": "TBA", "time": "TBA" },
+        { "date": "2026-11-07", "opponent": "N.C. State", "opponentSlug": "nc-state", "site": "away", "city": "Raleigh, N.C.", "conferenceGame": true, "network": "TBA", "time": "TBA" },
+        { "date": "2026-11-14", "opponent": "Miami", "opponentSlug": "miami", "site": "away", "city": "Miami, Fla.", "conferenceGame": true, "network": "TBA", "time": "TBA" },
+        { "date": "2026-11-20", "opponent": "Clemson", "opponentSlug": "clemson", "site": "home", "city": "Durham, N.C.", "conferenceGame": true, "network": "ESPN", "time": "7:30 p.m." },
+        { "date": "2026-11-28", "opponent": "Wake Forest", "opponentSlug": "wake-forest", "site": "away", "city": "Winston-Salem, N.C.", "conferenceGame": true, "network": "TBA", "time": "TBA" }
+      ],
+      "positionalBreakdown": [
+        { "position": "QB", "total": 6, "returning": 2, "portal": 3, "signee": 1 },
+        { "position": "RB", "total": 6, "returning": 2, "portal": 2, "signee": 2 },
+        { "position": "WR", "total": 14, "returning": 6, "portal": 5, "signee": 3 },
+        { "position": "TE", "total": 7, "returning": 4, "portal": 1, "signee": 2 },
+        { "position": "OL", "total": 17, "returning": 14, "portal": 2, "signee": 1 },
+        { "position": "DT", "total": 8, "returning": 4, "portal": 2, "signee": 2 },
+        { "position": "DE", "total": 9, "returning": 8, "portal": 0, "signee": 1 },
+        { "position": "LB", "total": 11, "returning": 8, "portal": 1, "signee": 2 },
+        { "position": "CB", "total": 9, "returning": 4, "portal": 4, "signee": 1 },
+        { "position": "S", "total": 7, "returning": 4, "portal": 1, "signee": 2 },
+        { "position": "K", "total": 4, "returning": 2, "portal": 1, "signee": 1 },
+        { "position": "LS", "total": 3, "returning": 2, "portal": 1, "signee": 0 },
+        { "position": "P", "total": 1, "returning": 1, "portal": 0, "signee": 0 }
+      ],
+      "portalAdditions": [
+        { "name": "CJ Campbell Jr.", "position": "RB", "previousProgram": "Florida State" },
+        { "name": "Nate Kurisky", "position": "TE", "previousProgram": "Louisville" },
+        { "name": "Braden Miller", "position": "OL", "previousProgram": "California/Michigan State" },
+        { "name": "Che Ojarikre", "position": "CB", "previousProgram": "Stanford" },
+        { "name": "Walker Eget", "position": "QB", "previousProgram": "San Jose State" },
+        { "name": "Javen Nicholas", "position": "WR", "previousProgram": "Charlotte/LSU" },
+        { "name": "Jonah Burton", "position": "WR", "previousProgram": "Idaho State" },
+        { "name": "Wilhelm Daal II", "position": "RB", "previousProgram": "Yale" },
+        { "name": "Blaine Hipa", "position": "QB", "previousProgram": "Princeton" },
+        { "name": "Kyon Loud", "position": "CB", "previousProgram": "Montana" },
+        { "name": "Dakota Quinonez", "position": "DT", "previousProgram": "Dartmouth" },
+        { "name": "Blake Rohrer", "position": "WR", "previousProgram": "Wisconsin River Falls" }
+      ],
+      "featuredPlayers": [
+        { "name": "Walker Eget", "number": 2, "position": "QB", "class": "Post-Bacc", "hometown": "Santa Clarita, Calif.", "previousSchool": "San Jose State" },
+        { "name": "Nate Sheppard", "number": 20, "position": "RB", "class": "So.", "hometown": "Mandeville, La.", "previousSchool": null },
+        { "name": "Jayden Moore", "number": 8, "position": "WR", "class": "R-So.", "hometown": "Sykesville, Md.", "previousSchool": null },
+        { "name": "Matt Craycraft", "number": 72, "position": "OL", "class": "Gr.", "hometown": "Dallas, Texas", "previousSchool": null },
+        { "name": "Landan Callahan", "number": 3, "position": "CB", "class": "R-So.", "hometown": "Rural Hall, N.C.", "previousSchool": null },
+        { "name": "Luke Mergott", "number": 34, "position": "LB", "class": "Gr.", "hometown": "Berlin, Md.", "previousSchool": null },
+        { "name": "DaShawn Stone", "number": 8, "position": "S", "class": "R-Jr.", "hometown": "Asheville, N.C.", "previousSchool": null },
+        { "name": "Kade Reynoldson", "number": 41, "position": "P", "class": "Jr.", "hometown": "Gold Coast, Australia", "previousSchool": null }
+      ],
+      "notes": [
+        "The guide reports 35 lettermen lost on the preview page and lists 36 names in the detailed section; preserve both values until reconciled.",
+        "Schedule times and networks marked TBA must be refreshed from the canonical schedule provider."
+      ]
+    }
+  ],
+  "seasonReviews": [
+    {
+      "id": "season-review-2025",
+      "season": 2025,
+      "citationId": "season-review",
+      "record": { "wins": 9, "losses": 5, "ties": 0 },
+      "conferenceRecord": { "wins": 6, "losses": 2, "ties": 0 },
+      "conferenceFinish": "T2nd; ACC Champions",
+      "postseason": "Tony the Tiger Sun Bowl",
+      "statistics": {
+        "points": 484,
+        "totalTouchdowns": 63,
+        "passingYards": 3995,
+        "rushingYards": 1934,
+        "passEfficiency": 152.53,
+        "turnoverMarginPerGame": 0.71
+      },
+      "notableFacts": [
+        "Duke became the first team in program history with a 3,000-yard passer, 1,000-yard receiver, and 1,000-yard rusher in the same season.",
+        "Duke won back-to-back in-state ACC state titles.",
+        "Duke reached six ACC wins for the first time since 2013.",
+        "The senior class tied the program record with 33 wins over a four-year span."
+      ],
+      "leaders": [
+        { "name": "Darian Mensah", "category": "passing", "yards": 3973, "touchdowns": 34 },
+        { "name": "Nate Sheppard", "category": "rushing", "yards": 1132, "touchdowns": 11 },
+        { "name": "Cooper Barkate", "category": "receiving", "yards": 1106, "touchdowns": 7 }
+      ],
+      "awards": [
+        "Brian Parker II was a second-team All-American.",
+        "Cooper Barkate, Sahmir Hagans, Darian Mensah, Brian Parker II, Chandler Rivers, and Nate Sheppard were second-team All-ACC selections.",
+        "Chandler Rivers was selected to the AFCA Good Works Team."
+      ],
+      "featuredGames": [
+        { "opponent": "Clemson", "score": "Duke 46, Clemson 45", "fact": "Duke won at Clemson for the first time since 1980." },
+        { "opponent": "Wake Forest", "score": "Duke 49, Wake Forest 32", "fact": "Duke captured a second consecutive in-state state title." },
+        { "opponent": "Arizona State", "score": "Duke 42, Arizona State 39", "fact": "Duke closed the season with a Sun Bowl win and consecutive nine-win seasons." }
+      ],
+      "departedPlayers": [
+        { "name": "Darian Mensah", "position": "QB", "destination": "Miami" },
+        { "name": "Cooper Barkate", "position": "WR", "destination": null },
+        { "name": "Sahmir Hagans", "position": "WR", "destination": null },
+        { "name": "Brian Parker II", "position": "OL", "destination": "Cincinnati Bengals, 2026 NFL Draft" },
+        { "name": "Chandler Rivers", "position": "CB", "destination": null }
+      ]
+    }
+  ],
+  "opponentSeries": [
+    { "id": "series-tulane", "opponent": "Tulane", "opponentSlug": "tulane", "dukeWins": 3, "dukeLosses": 3, "ties": 0, "throughSeason": 2025, "historicalNote": "Duke's last win in the series came in 2015, a 37-7 road victory.", "citationId": "series-ledgers" },
+    { "id": "series-illinois", "opponent": "Illinois", "opponentSlug": "illinois", "dukeWins": 1, "dukeLosses": 2, "ties": 0, "throughSeason": 2025, "historicalNote": "The teams first met in 1958, when Duke won 15-13; Illinois won the next two meetings in 1965 and 2025.", "citationId": "series-ledgers" },
+    { "id": "series-stanford", "opponent": "Stanford", "opponentSlug": "stanford", "dukeWins": 1, "dukeLosses": 3, "ties": 0, "throughSeason": 2024, "historicalNote": "Duke's lone win in the series came in 1971, a 9-3 road victory.", "citationId": "series-ledgers" },
+    { "id": "series-william-and-mary", "opponent": "William & Mary", "opponentSlug": "william-and-mary", "dukeWins": 1, "dukeLosses": 6, "ties": 0, "throughSeason": 1955, "historicalNote": "The most recent meeting was Duke's 47-7 home win in 1955.", "citationId": "series-ledgers" },
+    { "id": "series-georgia-tech", "opponent": "Georgia Tech", "opponentSlug": "georgia-tech", "dukeWins": 35, "dukeLosses": 56, "ties": 1, "throughSeason": 2025, "historicalNote": "Duke's 1938 win over Georgia Tech came during its 9-1 Rose Bowl season.", "citationId": "series-ledgers" },
+    { "id": "series-north-carolina", "opponent": "North Carolina", "opponentSlug": "north-carolina", "dukeWins": 42, "dukeLosses": 65, "ties": 4, "throughSeason": 2025, "historicalNote": "Duke and North Carolina first met in 1888, the first season listed in Duke's football record.", "citationId": "series-ledgers" },
+    { "id": "series-virginia", "opponent": "Virginia", "opponentSlug": "virginia", "dukeWins": 35, "dukeLosses": 42, "ties": 0, "throughSeason": 2025, "historicalNote": "The series began in 1890, when Virginia won 10-4 at a neutral site.", "citationId": "series-ledgers" },
+    { "id": "series-boston-college", "opponent": "Boston College", "opponentSlug": "boston-college", "dukeWins": 4, "dukeLosses": 5, "ties": 0, "throughSeason": 2022, "historicalNote": "Duke's most recent listed win was a 38-31 road victory in 2022.", "citationId": "series-ledgers" },
+    { "id": "series-nc-state", "opponent": "N.C. State", "opponentSlug": "nc-state", "dukeWins": 44, "dukeLosses": 37, "ties": 5, "throughSeason": 2025, "historicalNote": "Duke has won three straight against N.C. State through 2025.", "citationId": "series-ledgers" },
+    { "id": "series-miami", "opponent": "Miami", "opponentSlug": "miami", "dukeWins": 5, "dukeLosses": 16, "ties": 0, "throughSeason": 2025, "historicalNote": "Duke's 48-30 win over Miami in 2013 remains one of the series' highest-scoring Duke victories.", "citationId": "series-ledgers" },
+    { "id": "series-clemson", "opponent": "Clemson", "opponentSlug": "clemson", "dukeWins": 18, "dukeLosses": 37, "ties": 1, "throughSeason": 2025, "historicalNote": "Duke's 46-45 win at Clemson in 2025 was its first victory in Death Valley since 1980.", "citationId": "series-ledgers" },
+    { "id": "series-wake-forest", "opponent": "Wake Forest", "opponentSlug": "wake-forest", "dukeWins": 62, "dukeLosses": 41, "ties": 2, "throughSeason": 2025, "historicalNote": "Duke's 2025 win over Wake Forest helped secure a second straight in-state state title.", "citationId": "series-ledgers" }
+  ],
+  "programRecords": [
+    {
+      "id": "single-game-passing-yards",
+      "category": "record-watch",
+      "metric": "passingYards",
+      "label": "Duke single-game passing yards",
+      "citationId": "record-book",
+      "entries": [
+        { "rank": 1, "player": "Dave Brown", "value": 479, "opponent": "North Carolina", "season": 1989 },
+        { "rank": 2, "player": "Anthony Dilweg", "value": 475, "opponent": "Wake Forest", "season": 1988 },
+        { "rank": 3, "player": "Ben Bennett", "value": 469, "opponent": "Wake Forest", "season": 1980 },
+        { "rank": 4, "player": "Thaddeus Lewis", "value": 459, "opponent": "N.C. State", "season": 2009 },
+        { "rank": 5, "player": "Steve Slayden", "value": 458, "opponent": "N.C. State", "season": 1987 }
+      ]
+    },
+    {
+      "id": "single-game-rushing-yards",
+      "category": "record-watch",
+      "metric": "rushingYards",
+      "label": "Duke single-game rushing yards",
+      "citationId": "record-book",
+      "entries": [
+        { "rank": 1, "player": "Mataeo Durant", "value": 255, "opponent": "Charlotte", "season": 2021 },
+        { "rank": 2, "player": "Shaun Wilson", "value": 245, "opponent": "Kansas", "season": 2014 },
+        { "rank": 3, "player": "Robert Baldwin", "value": 238, "opponent": "Maryland", "season": 1994 },
+        { "rank": 4, "player": "Randy Cuthbert", "value": 234, "opponent": "Georgia Tech", "season": 1989 },
+        { "rank": 5, "player": "Chris Douglas", "value": 218, "opponent": "Georgia Tech", "season": 2003 },
+        { "rank": 6, "player": "George Clark", "value": 214, "opponent": "Wake Forest", "season": 1945 },
+        { "rank": 7, "player": "Steve Jones", "value": 204, "opponent": "Virginia", "season": 1971 },
+        { "rank": 8, "player": "Nate Sheppard", "value": 168, "opponent": "Syracuse", "season": 2025 }
+      ]
+    },
+    {
+      "id": "single-game-receiving-yards",
+      "category": "record-watch",
+      "metric": "receivingYards",
+      "label": "Duke single-game receiving yards",
+      "citationId": "record-book",
+      "entries": [
+        { "rank": 1, "player": "Chris Castor", "value": 283, "opponent": "Wake Forest", "season": 1982 },
+        { "rank": 2, "player": "Corey Thomas", "value": 276, "opponent": "Georgia Tech", "season": 1997 },
+        { "rank": 3, "player": "Clarkston Hines", "value": 251, "opponent": "Wake Forest", "season": 1989 },
+        { "rank": 4, "player": "Scottie Montgomery", "value": 243, "opponent": "Vanderbilt", "season": 1998 },
+        { "rank": 5, "player": "T.J. Rahming", "value": 240, "opponent": "Temple", "season": 2018 }
+      ]
+    },
+    {
+      "id": "single-game-sacks",
+      "category": "record-watch",
+      "metric": "sacks",
+      "label": "Duke single-game sacks",
+      "citationId": "record-book",
+      "entries": [
+        { "rank": 1, "player": "Blaine Earon", "value": 4, "opponent": "Georgia Tech", "season": 1949 },
+        { "rank": 2, "player": "Chris Rumph II", "value": 3.5, "opponent": "Miami", "season": 2019 },
+        { "rank": 2, "player": "Victor Dimukeje", "value": 3.5, "opponent": "Boston College", "season": 2020 },
+        { "rank": 4, "player": "Vincent Anthony Jr.", "value": 3, "opponent": "Illinois", "season": 2025 }
+      ]
+    }
+  ],
+  "historicalFacts": [
+    {
+      "id": "clemson-2025-first-death-valley-win-since-1980",
+      "category": "opponent-history",
+      "opponentSlug": "clemson",
+      "season": 2025,
+      "statement": "Duke's 46-45 win at Clemson in 2025 was its first victory in Death Valley since 1980.",
+      "citationId": "season-review",
+      "keywords": ["clemson", "death valley", "road win"]
+    },
+    {
+      "id": "state-title-2025",
+      "category": "program-history",
+      "season": 2025,
+      "statement": "Duke won back-to-back in-state ACC state titles in 2025.",
+      "citationId": "season-review",
+      "keywords": ["state title", "north carolina", "nc state", "wake forest"]
+    },
+    {
+      "id": "three-1000-yard-milestone-2025",
+      "category": "program-record",
+      "season": 2025,
+      "statement": "Duke's 2025 offense became the first in program history with a 3,000-yard passer, 1,000-yard receiver, and 1,000-yard rusher in the same season.",
+      "citationId": "season-review",
+      "keywords": ["passing", "rushing", "receiving", "milestone"]
+    },
+    {
+      "id": "largest-comeback-1962-florida",
+      "category": "comeback-history",
+      "opponentSlug": "florida",
+      "season": 1962,
+      "statement": "Duke's largest listed second-half comeback was a 21-point rally in a 28-21 win over Florida in 1962.",
+      "citationId": "milestones",
+      "keywords": ["comeback", "second half"]
+    },
+    {
+      "id": "final-minute-win-1954-georgia-tech",
+      "category": "late-game-history",
+      "opponentSlug": "georgia-tech",
+      "season": 1954,
+      "statement": "Duke's 1954 win over Georgia Tech was decided by a score and extra point with 42 seconds remaining.",
+      "citationId": "milestones",
+      "keywords": ["final minute", "late game"]
+    },
+    {
+      "id": "sun-bowl-2025",
+      "category": "bowl-history",
+      "opponentSlug": "arizona-state",
+      "season": 2025,
+      "statement": "Duke closed 2025 with a 42-39 Tony the Tiger Sun Bowl win over Arizona State.",
+      "citationId": "season-review",
+      "keywords": ["bowl", "sun bowl", "arizona state"]
+    }
+  ],
+  "historicalPlayers": [
+    {
+      "id": "ace-parker",
+      "name": "Ace Parker",
+      "position": "HB",
+      "era": "1934-1936",
+      "honors": "Two-time All-America selection, College Football Hall of Fame, and Pro Football Hall of Fame.",
+      "citationId": "honors"
+    },
+    {
+      "id": "george-mcafee",
+      "name": "George McAfee",
+      "position": "HB",
+      "era": "1937-1939",
+      "honors": "College Football Hall of Fame and Pro Football Hall of Fame; first-round NFL draft pick.",
+      "citationId": "honors"
+    },
+    {
+      "id": "clarkston-hines",
+      "name": "Clarkston Hines",
+      "position": "WR",
+      "era": "1986-1989",
+      "honors": "Two-time first-team All-America selection and College Football Hall of Fame member.",
+      "citationId": "honors"
+    },
+    {
+      "id": "michael-tauiliili",
+      "name": "Michael Tauiliili",
+      "position": "LB",
+      "era": "2005-2008",
+      "honors": "Second-team All-America selection and 434 career tackles.",
+      "citationId": "honors"
+    },
+    {
+      "id": "laken-tomlinson",
+      "name": "Laken Tomlinson",
+      "position": "OG",
+      "era": "2011-2014",
+      "honors": "Consensus first-team All-America selection and 2015 first-round NFL draft pick.",
+      "citationId": "honors"
+    },
+    {
+      "id": "daniel-jones",
+      "name": "Daniel Jones",
+      "position": "QB",
+      "era": "2016-2018",
+      "honors": "Duke quarterback profile with career and NFL context in the historical player section.",
+      "citationId": "honors"
+    }
+  ],
+  "comebackHistory": [
+    { "id": "comeback-florida-1962", "opponentSlug": "florida", "largestDeficit": 21, "season": 1962, "citationId": "milestones" },
+    { "id": "comeback-georgia-tech-1954", "opponentSlug": "georgia-tech", "largestDeficit": 20, "season": 1954, "citationId": "milestones" },
+    { "id": "comeback-north-carolina-2024", "opponentSlug": "north-carolina", "largestDeficit": 20, "season": 2024, "citationId": "milestones" }
+  ]
+}

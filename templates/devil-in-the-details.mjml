@@ -65,6 +65,8 @@
       </mj-column>
     </mj-section>
 
+    {{win_expectancy_section}}
+
     <mj-section background-color="#f8f4ea" padding="24px 18px 10px">
       <mj-column>
         <mj-text font-size="12px" letter-spacing="3px" font-weight="700" padding-left="6px">THREE NUMBERS THAT TELL THE STORY</mj-text>
@@ -94,6 +96,8 @@
         <mj-table font-size="12px" line-height="1.45" padding-top="10px" css-class="stat">{{passing_rows}}{{rushing_rows}}{{receiving_rows}}{{defense_rows}}</mj-table>
       </mj-column>
     </mj-section>
+
+    {{guide_sections}}
 
     <mj-section background-color="#003087" padding="20px 24px">
       <mj-column>

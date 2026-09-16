@@ -25,6 +25,9 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NEWSLETTER_TEST_TO: ${{ secrets.NEWSLETTER_TEST_TO }}
+          CFB_DATA_KEY: ${{ secrets.CFB_DATA_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_EDITORIAL_MODEL: ${{ secrets.OPENAI_EDITORIAL_MODEL || 'gpt-4o-mini' }}
           NEWSLETTER_USE_LIVE_DATA: 'true'
           RESEND_FROM_EMAIL: Duke Football Scorigami <onboarding@resend.dev>
         run: npm run newsletter:test

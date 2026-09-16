@@ -1,4 +1,8 @@
 import supabase from '../supabaseClient.js';
+import { normalizeOpponentSlug } from '../mediaGuide/guideFacts.js';
+import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
+import { loadAccContext } from './accData.js';
+import { buildGuideContext } from './guideContext.js';
 import { buildSundayIssueData } from './issueData.js';
 
 async function loadParticipants(client, gameId) {
@@ -15,6 +19,71 @@ async function loadParticipants(client, gameId) {
     score: participant.score,
     team: teamsById.get(participant.team_id),
   }));
+}
+
+async function fetchPagedRows(client, table, columns, configure, pageSize = 500) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    let query = client.from(table).select(columns);
+    query = configure(query);
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
+function scorePair(dukeScore, opponentScore) {
+  return [Number(dukeScore), Number(opponentScore)].sort((left, right) => left - right).join('-');
+}
+
+async function loadScorigamiHistory(client, currentGame, scoreFacts) {
+  if (!scoreFacts?.scorePair || scoreFacts.isNew) return [];
+
+  const [games, participants, teams] = await Promise.all([
+    fetchPagedRows(client, 'games', 'id, start_at, venue_name, city, state', (query) => {
+      let configured = query.eq('status', 'final').order('start_at', { ascending: false });
+      if (currentGame.start_at) configured = configured.lt('start_at', currentGame.start_at);
+      return configured;
+    }),
+    fetchPagedRows(client, 'game_participants', 'game_id, team_id, score', (query) => query),
+    client.from('teams').select('id, slug, name').then(({ data, error }) => {
+      if (error) throw error;
+      return data || [];
+    }),
+  ]);
+
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const participantsByGame = new Map();
+  for (const participant of participants) {
+    const list = participantsByGame.get(participant.game_id) || [];
+    list.push({ ...participant, team: teamsById.get(participant.team_id) });
+    participantsByGame.set(participant.game_id, list);
+  }
+
+  return games.flatMap((game) => {
+    const gameParticipants = participantsByGame.get(game.id) || [];
+    const duke = gameParticipants.find((participant) => participant.team?.slug === 'duke');
+    const opponent = gameParticipants.find((participant) => participant.team?.slug !== 'duke');
+    if (!duke || !opponent || duke.score == null || opponent.score == null) return [];
+    if (scorePair(duke.score, opponent.score) !== scoreFacts.scorePair) return [];
+    const cityState = [game.city, game.state].filter(Boolean).join(', ');
+    return [{
+      gameId: game.id,
+      startAt: game.start_at,
+      opponent: opponent.team.name,
+      dukeScore: duke.score,
+      opponentScore: opponent.score,
+      location: [game.venue_name, cityState].filter(Boolean).join(', '),
+    }];
+  });
+}
+
+function findNextGuideSchedule(guide, nextGame, nextParticipants) {
+  if (!guide || !nextGame) return null;
+  const opponent = nextParticipants.find((participant) => participant.team?.slug !== 'duke');
+  const seasonContext = guide.seasonContext.find((context) => context.season === nextGame.season);
+  return seasonContext?.schedule.find((entry) => normalizeOpponentSlug(entry.opponent) === normalizeOpponentSlug(opponent?.team?.name));
 }
 
 export async function loadLatestSundayIssueData(client = supabase) {
@@ -42,7 +111,7 @@ export async function loadLatestSundayIssueData(client = supabase) {
 
   const { data: nextGames, error: nextError } = await client
     .from('games')
-    .select('id, start_at, venue_name, status')
+    .select('id, season, start_at, venue_name, status')
     .eq('status', 'scheduled')
     .gt('start_at', new Date().toISOString())
     .order('start_at', { ascending: true })
@@ -51,6 +120,40 @@ export async function loadLatestSundayIssueData(client = supabase) {
   const nextGame = nextGames?.[0] || null;
   const nextParticipants = nextGame ? await loadParticipants(client, nextGame.id) : [];
 
+  const scoreFacts = factRows?.[0]?.value?.scorigami || {};
+  let scorigamiHistory = [];
+  try {
+    scorigamiHistory = await loadScorigamiHistory(client, game, scoreFacts);
+  } catch (error) {
+    console.warn(`Scorigami history unavailable: ${error.message}`);
+  }
+
+  let guide = null;
+  let guideContext = null;
+  try {
+    guide = loadMediaGuide();
+    guideContext = buildGuideContext({
+      guide,
+      game,
+      participants,
+      detailsPayload: analytics?.[0]?.payload || {},
+      facts: factRows?.[0]?.value || {},
+    });
+  } catch (error) {
+    console.warn(`Media-guide context unavailable: ${error.message}`);
+  }
+
+  let accContext = null;
+  try {
+    accContext = await loadAccContext({
+      season: game.season,
+      week: game.week,
+      currentGameId: sourceRecords?.[0]?.payload?.id,
+    });
+  } catch (error) {
+    console.warn(`Around the ACC data unavailable: ${error.message}`);
+  }
+
   return buildSundayIssueData({
     game,
     participants,
@@ -58,7 +161,11 @@ export async function loadLatestSundayIssueData(client = supabase) {
     detailsPayload: analytics?.[0]?.payload || {},
     facts: factRows?.[0]?.value || {},
     directive: directives?.[0] || null,
+    guideContext,
     nextGame,
     nextParticipants,
+    nextSchedule: findNextGuideSchedule(guide, nextGame, nextParticipants),
+    scorigamiHistory,
+    accContext,
   });
 }

@@ -1,0 +1,33 @@
+import { runStructuredAgent } from '../agentClient.js';
+import { buildDeterministicEditorialFallback } from '../fallbackEditorial.js';
+import { momentSchema } from '../schemas.js';
+
+const instructions = [
+  'You are the Duke football turning-point editor.',
+  'Write one short, rowdy, self-aware sentence about the most entertaining verified play or moment.',
+  'Use cocky fan humor when Duke wins. Aim jokes at the situation, not individual people.',
+  'If the play is a fake punt, use a three-beat contrast structure when natural: the opponent saw the formation, Duke saw the opportunity, and the Duke player saw the space.',
+  'Never claim a team or player was unaware unless the supplied facts explicitly establish that. Never invent yards, names, score impact, or intent.',
+  'Prefer the supplied turningPoint.description and preserve its player, timing, situation, and score context.',
+  'Use externally discovered moments only when confidence is corroborated and the evidence supports the claim.',
+  'Do not mention sources, agents, prompts, or verification.',
+].join(' ');
+
+export async function runMomentAgent(packet, options = {}) {
+  const result = await runStructuredAgent({
+    name: 'duke_turning_point_editor',
+    instructions,
+    packet,
+    schema: momentSchema,
+    ...options,
+  });
+  if (result.output) return result.output;
+  const fallback = buildDeterministicEditorialFallback({
+    current_opponent: packet.issue.currentOpponent,
+    quarters: [{ final: packet.facts.score.duke }, { final: packet.facts.score.opponent }],
+    numbers: packet.facts.numbers,
+    guide_context: packet.issue.guideContext,
+    turning_point: packet.issue.turningPoint,
+  }).moment;
+  return { ...fallback, warnings: result.warning ? [result.warning] : fallback.warnings };
+}
