@@ -34,18 +34,22 @@ async function fetchOptionalEndpoint(url, apiKey) {
   }
 }
 
+export function buildGameDetailsParams(masterGame) {
+  const externalGameId = masterGame.sourceRecords[0]?.externalGameId;
+  if (!externalGameId) throw new Error('CFBData game details require an external game id');
+
+  return new URLSearchParams({
+    year: String(masterGame.season),
+    id: String(externalGameId),
+  });
+}
+
 export async function fetchCfbDataGameDetails(masterGame, {
   apiKey = process.env.CFB_DATA_KEY,
 } = {}) {
   if (!apiKey) return { provider: 'cfbdata', status: 'not_configured', metricSet: 'game_details', data: null };
 
-  const externalGameId = masterGame.sourceRecords[0]?.externalGameId;
-  if (!externalGameId) throw new Error('CFBData game details require an external game id');
-
-  const baseParams = new URLSearchParams({
-    year: String(masterGame.season),
-    gameId: externalGameId,
-  });
+  const baseParams = buildGameDetailsParams(masterGame);
   const requests = {
     teamStats: fetchOptionalEndpoint(`https://api.collegefootballdata.com/games/teams?${baseParams}`, apiKey),
     playerStats: fetchOptionalEndpoint(`https://api.collegefootballdata.com/games/players?${baseParams}`, apiKey),
