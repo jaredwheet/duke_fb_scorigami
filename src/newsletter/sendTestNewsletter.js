@@ -14,9 +14,11 @@ const resend = new Resend(apiKey);
 const deterministicIssueData = process.env.NEWSLETTER_USE_LIVE_DATA === 'true'
   ? await loadLatestSundayIssueData()
   : {};
-const issueData = deterministicIssueData.current_score
-  ? (await runEditorialOrchestrator(deterministicIssueData)).issueData
-  : deterministicIssueData;
+const editorialResult = deterministicIssueData.current_score
+  ? await runEditorialOrchestrator(deterministicIssueData)
+  : null;
+const issueData = editorialResult?.issueData || deterministicIssueData;
+if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
 const html = await renderDevilInDetails(issueData);
 const { data, error } = await resend.emails.send({
   from: process.env.RESEND_FROM_EMAIL || 'Duke Football Scorigami <onboarding@resend.dev>',

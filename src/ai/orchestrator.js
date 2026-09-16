@@ -7,6 +7,7 @@ import { runMomentAgent } from './agents/momentAgent.js';
 import { runMomentScoutAgent } from './agents/momentScoutAgent.js';
 import { discoverMomentSources } from './moments/sourceDiscovery.js';
 import { runWebMomentScout } from './moments/webMomentScout.js';
+import { buildDeterministicEditorialFallback } from './fallbackEditorial.js';
 import { validateEditorialPackage } from './validateEditorial.js';
 
 function applyEditorial(issueData, editorial) {
@@ -66,11 +67,9 @@ export async function runEditorialOrchestrator(issueData, options = {}) {
   let validation = validateEditorialPackage({ packet, editorial });
   if (!validation.approved) {
     const fallbackEditorial = {
+      ...buildDeterministicEditorialFallback(issueData),
       recap: {
-        headline: issueData.headline,
-        subheadline: issueData.subheadline,
-        narrative: issueData.narrative,
-        factsUsed: ['game.score', 'game.numbers', 'game.leaders'],
+        ...buildDeterministicEditorialFallback(issueData).recap,
         warnings: validation.issues,
       },
       scorigami: {
@@ -84,7 +83,10 @@ export async function runEditorialOrchestrator(issueData, options = {}) {
         warnings: validation.issues,
       },
       acc: { blurb: '', factsUsed: ['acc'], warnings: validation.issues },
-      moment: { blurb: '', factsUsed: [], warnings: validation.issues },
+      moment: {
+        ...buildDeterministicEditorialFallback(issueData).moment,
+        warnings: validation.issues,
+      },
     };
     validation = validateEditorialPackage({ packet, editorial: fallbackEditorial });
     return { issueData: applyEditorial(issueData, fallbackEditorial), editorial: fallbackEditorial, validation, mode: 'deterministic-fallback' };

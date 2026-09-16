@@ -1,4 +1,5 @@
 import { runStructuredAgent } from '../agentClient.js';
+import { buildDeterministicEditorialFallback } from '../fallbackEditorial.js';
 import { momentSchema } from '../schemas.js';
 
 const instructions = [
@@ -19,9 +20,13 @@ export async function runMomentAgent(packet, options = {}) {
     schema: momentSchema,
     ...options,
   });
-  return result.output || {
-    blurb: '',
-    factsUsed: packet.facts.turningPoint?.factsUsed || [],
-    warnings: result.warning ? [result.warning] : [],
-  };
+  if (result.output) return result.output;
+  const fallback = buildDeterministicEditorialFallback({
+    current_opponent: packet.issue.currentOpponent,
+    quarters: [{ final: packet.facts.score.duke }, { final: packet.facts.score.opponent }],
+    numbers: packet.facts.numbers,
+    guide_context: packet.issue.guideContext,
+    turning_point: packet.issue.turningPoint,
+  }).moment;
+  return { ...fallback, warnings: result.warning ? [result.warning] : fallback.warnings };
 }
