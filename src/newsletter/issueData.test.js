@@ -64,3 +64,29 @@ test('builds Sunday content from verified game and play facts', () => {
   expect(data.scorigami_status).toBe('FAMILIAR TERRITORY.');
   expect(data.source_url).toBe('https://www.winsipedia.com/duke/schedule/2026');
 });
+
+test('keeps the rusher name in a live CFBData rushing touchdown description', () => {
+  const data = buildSundayIssueData({
+    game: { season: 2026 },
+    participants: [
+      { team: { slug: 'duke', name: 'Duke' }, score: 31 },
+      { team: { slug: 'illinois', name: 'Illinois' }, score: 27 },
+    ],
+    detailsPayload: {
+      plays: [{
+        playNumber: 1,
+        period: 2,
+        offense: 'Duke',
+        defense: 'Illinois',
+        offenseScore: 14,
+        defenseScore: 17,
+        scoring: true,
+        clock: { minutes: 7, seconds: 5 },
+        playText: '(07:09) Shotgun #20 N.Sheppard rush middle for 2 yards gain to the ILL00 TOUCHDOWN',
+      }],
+    },
+    facts: {},
+  });
+
+  expect(data.scoring_plays[0].description).toBe('Sheppard, 2-yard touchdown run');
+});

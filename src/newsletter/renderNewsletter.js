@@ -84,27 +84,30 @@ function buildGuideSections(context = null) {
     `);
   }
 
-  const rows = [
+  const facts = [
     context.comeback?.comeback
-      ? `<tr><td style="padding:5px 4px;font-weight:700;">COMEBACK</td><td style="padding:5px 4px;">Duke erased a ${escapeHtml(context.comeback.largestDeficit)}-point deficit${context.comeback.trailingAt ? ` (${escapeHtml(context.comeback.trailingAt)})` : ''}.</td></tr>`
-      : '',
+      ? { label: 'COMEBACK', detail: `Duke erased a ${context.comeback.largestDeficit}-point deficit${context.comeback.trailingAt ? ` (${context.comeback.trailingAt})` : ''}.` }
+      : null,
     context.lateGame?.lateGameWin
-      ? `<tr><td style="padding:5px 4px;font-weight:700;">LATE GAME</td><td style="padding:5px 4px;">Duke took the lead in Q${escapeHtml(context.lateGame.period)} at ${escapeHtml(context.lateGame.time)}.</td></tr>`
-      : '',
+      ? { label: 'LATE GAME', detail: `Duke took the lead in Q${context.lateGame.period} at ${context.lateGame.time}.` }
+      : null,
     context.opponentHistory
-      ? `<tr><td style="padding:5px 4px;font-weight:700;">SERIES</td><td style="padding:5px 4px;">${escapeHtml(context.opponentHistory.statement)}</td></tr>`
-      : '',
+      ? { label: 'SERIES', detail: context.opponentHistory.statement }
+      : null,
     context.historicalFact
-      ? `<tr><td style="padding:5px 4px;font-weight:700;">DUKE HISTORY</td><td style="padding:5px 4px;">${escapeHtml(context.historicalFact.statement)}</td></tr>`
-      : '',
-  ].filter(Boolean).join('');
+      ? { label: 'DUKE HISTORY', detail: context.historicalFact.statement }
+      : null,
+  ].filter(Boolean);
 
-  if (rows) {
+  if (facts.length > 0) {
     blocks.push(`
-      <mj-section background-color="#f8f4ea" padding="20px 24px 10px">
+      <mj-section background-color="#f8f4ea" padding="20px 24px 18px">
         <mj-column>
           <mj-text font-size="12px" letter-spacing="3px" font-weight="700">FROM THE DUKE RECORD</mj-text>
-          <mj-table font-size="12px" line-height="1.45" padding-top="8px">${rows}</mj-table>
+          ${facts.map((fact) => `
+            <mj-text font-size="11px" line-height="1.2" letter-spacing="2px" font-weight="700" padding-top="16px">${escapeHtml(fact.label)}</mj-text>
+            <mj-text font-size="14px" line-height="1.45" padding-top="5px">${escapeHtml(fact.detail)}</mj-text>
+          `).join('')}
         </mj-column>
       </mj-section>
     `);

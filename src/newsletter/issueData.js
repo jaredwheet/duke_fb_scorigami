@@ -107,7 +107,7 @@ function compactScoringDescription(play) {
   }
 
   const rushTouchdown = text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*)\s+(\d+)\s*Yd\s+(?:Rush|Run)/i)
-    || text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*)\s+(?:rush|runs?)\s+for\s+(\d+)\s+yards?.*touchdown/i);
+    || text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*)\s+(?:rush|runs?)(?:\s+[A-Za-z-]+)*\s+for\s+(\d+)\s+yards?.*touchdown/i);
   if (rushTouchdown) {
     const rusher = formatPlayerName(rushTouchdown[1]) || playerField(play, ['rusher', 'scorer', 'player', 'athlete']);
     const yards = rushTouchdown[2];

@@ -30,4 +30,5 @@ test('renders optional guide-backed history sections', async () => {
   expect(html).toContain('Test Runner set a new Duke record.');
   expect(html).toContain('Duke leads the series 45-37-5.');
   expect(html).toContain('LATE GAME');
+  expect(html).toContain('font-size:14px;line-height:1.45');
 });
