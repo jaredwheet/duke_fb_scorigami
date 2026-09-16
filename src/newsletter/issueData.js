@@ -100,10 +100,14 @@ function numericStat(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function leaderRow(teamBox, categoryName, primaryStat, fields) {
-  const leader = getPlayerMetrics(teamBox, categoryName)
+function getTopPlayer(teamBox, categoryName, primaryStat) {
+  return getPlayerMetrics(teamBox, categoryName)
     .filter(({ metrics }) => numericStat(metrics[primaryStat]) != null)
-    .sort((a, b) => numericStat(b.metrics[primaryStat]) - numericStat(a.metrics[primaryStat]))[0];
+    .sort((a, b) => numericStat(b.metrics[primaryStat]) - numericStat(a.metrics[primaryStat]))[0] || null;
+}
+
+function leaderRow(teamBox, categoryName, primaryStat, fields) {
+  const leader = getTopPlayer(teamBox, categoryName, primaryStat);
   if (!leader) return null;
 
   const line = fields
@@ -125,6 +129,16 @@ function getLeaders(detailsPayload, dukeName) {
   };
 }
 
+function getSummaryStats(detailsPayload, dukeName) {
+  const dukeTeam = getTeamBoxes(detailsPayload).find((team) => team.team === dukeName);
+  const dukePlayerBox = getPlayerBoxes(detailsPayload).find((team) => team.team === dukeName);
+  return {
+    rushingYards: getTeamStats(dukeTeam).rushingYards,
+    passer: getTopPlayer(dukePlayerBox, 'passing', 'YDS'),
+    rusher: getTopPlayer(dukePlayerBox, 'rushing', 'YDS'),
+  };
+}
+
 function getTurnoverNumber(detailsPayload, dukeName, opponent) {
   const teamBoxes = getTeamBoxes(detailsPayload);
   const dukeStats = getTeamStats(teamBoxes.find((team) => team.team === dukeName));
@@ -137,14 +151,59 @@ function getTurnoverNumber(detailsPayload, dukeName, opponent) {
   return {
     value: margin > 0 ? `+${margin}` : String(margin),
     detail: `Duke ${dukeTurnovers}, ${opponent} ${opponentTurnovers}.`,
+    dukeTurnovers,
+    opponentTurnovers,
   };
 }
 
-function buildNarrative({ dukeScore, opponentScore, opponent, directive, facts }) {
-  if (directive?.directive_key === 'scorigami_final' || facts?.scorigami?.isNew) {
-    return `Duke finished ${dukeScore}-${opponentScore} against ${opponent}. The final score pair had not previously appeared in the verified Duke football record. The historical result now leads the Sunday file.`;
+function numberWord(value) {
+  return value === 1 ? 'one' : String(value);
+}
+
+function buildLeadCopy({ dukeScore, opponentScore, opponent, dukeRole, turnoverNumber, summaryStats }) {
+  const score = `${dukeScore}-${opponentScore}`;
+  const won = dukeScore > opponentScore;
+  const setting = dukeRole === 'away' ? 'road' : dukeRole === 'home' ? 'home' : 'neutral-site';
+  const turnoverMargin = turnoverNumber
+    ? turnoverNumber.opponentTurnovers - turnoverNumber.dukeTurnovers
+    : null;
+  const turnoverScore = turnoverNumber
+    ? `${turnoverNumber.opponentTurnovers}-${turnoverNumber.dukeTurnovers}`
+    : null;
+  const teamRushingYards = numericStat(summaryStats?.rushingYards);
+  const passingYards = summaryStats?.passer?.metrics?.YDS;
+  const passingTouchdowns = numericStat(summaryStats?.passer?.metrics?.TD);
+  const rushingYards = summaryStats?.rusher?.metrics?.YDS;
+  const rushingTouchdowns = numericStat(summaryStats?.rusher?.metrics?.TD);
+  const passingTouchdownLabel = passingTouchdowns === 1 ? 'a touchdown' : `${passingTouchdowns} touchdowns`;
+  const rushingTouchdownLabel = rushingTouchdowns === 1 ? 'a touchdown' : `${rushingTouchdowns} touchdowns`;
+  const rushingSentence = summaryStats?.rusher && rushingYards != null && rushingTouchdowns != null
+    ? `${summaryStats.rusher.name} ran for ${rushingYards} yards and ${rushingTouchdownLabel}.`
+    : null;
+
+  const playerSentences = [
+    summaryStats?.passer && passingYards != null && passingTouchdowns != null
+      ? `${summaryStats.passer.name} threw for ${passingYards} yards and ${passingTouchdownLabel}.`
+      : null,
+    rushingSentence,
+  ].filter(Boolean);
+  const summarySentences = playerSentences.length > 0
+    ? [`${setting === 'road' ? 'On the road, ' : ''}${playerSentences[0]}`, ...playerSentences.slice(1)]
+    : [];
+  if (summarySentences.length === 0) {
+    if (turnoverMargin > 0) summarySentences.push(`Duke won the turnover battle ${turnoverScore}.`);
+    if (teamRushingYards != null) summarySentences.push(`The Blue Devils ran for ${teamRushingYards} yards as a team.`);
   }
-  return `Duke finished ${dukeScore}-${opponentScore} against ${opponent}. The result is recorded in the canonical game history, with the Scorigami check and supporting facts shown below.`;
+
+  return {
+    headline: won ? `DUKE OUTLASTS ${opponent.toUpperCase()}` : `DUKE FALLS SHORT AGAINST ${opponent.toUpperCase()}`,
+    subheadline: turnoverMargin > 0 && teamRushingYards != null
+      ? `The Blue Devils won the turnover battle ${turnoverScore} and ran for ${teamRushingYards} yards in a ${score} ${setting} win.`
+      : turnoverMargin > 0
+        ? `A ${numberWord(turnoverMargin)}-turnover edge helps the Blue Devils ${won ? 'outlast' : 'push'} ${opponent}, ${score}.`
+        : `The Blue Devils ${won ? 'outlast' : 'fall to'} ${opponent}, ${score}.`,
+    narrative: summarySentences.join(' '),
+  };
 }
 
 export function buildSundayIssueData({
@@ -171,6 +230,7 @@ export function buildSundayIssueData({
   const fourthQuarterPoints = quarterRows[0]?.q4;
   const scoreFacts = facts?.scorigami || {};
   const turnoverNumber = getTurnoverNumber(detailsPayload, dukeName, scores.opponent);
+  const summaryStats = getSummaryStats(detailsPayload, dukeName);
   const nextDetails = nextGame
     ? `${new Date(nextGame.start_at).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${nextGame.venue_name || 'Venue TBD'} · TV: TBD`
     : 'Schedule details are not yet available.';
@@ -181,11 +241,12 @@ export function buildSundayIssueData({
     preview_text: `Duke ${scores.dukeScore}-${scores.opponentScore} vs ${scores.opponent}.`,
     issue_date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
     issue_number: String(game.season),
-    headline: directive?.directive_key === 'scorigami_final'
-      ? 'DUKE PUTS A BRAND-NEW SCORE IN THE LEDGER'
-      : `DUKE ${scores.dukeScore > scores.opponentScore ? 'GETS THE WIN' : 'FIGHTS TO THE FINISH'}`,
-    subheadline: `Blue Devils ${scores.dukeScore > scores.opponentScore ? 'beat' : 'fall to'} ${scores.opponent} ${scores.dukeScore}-${scores.opponentScore}.`,
-    narrative: buildNarrative({ ...scores, directive, facts }),
+    ...buildLeadCopy({
+      ...scores,
+      dukeRole: participants.find((participant) => isDuke(participant.team))?.role,
+      turnoverNumber,
+      summaryStats,
+    }),
     quarters: quarterRows,
     scoring_plays: scoringRows,
     numbers: [
@@ -202,7 +263,7 @@ export function buildSundayIssueData({
     next_opponent: nextOpponent,
     next_details: nextDetails,
     source_url: `https://www.winsipedia.com/duke/schedule/${game.season}`,
-    footer_text: 'Facts are sourced and calculated before editorial copy is drafted.',
+    footer_text: 'A quick read on the game, the numbers, and what comes next.',
     unsubscribe_url: 'https://example.com/unsubscribe',
     preferences_url: 'https://example.com/preferences',
     source_payload: sourcePayload,
