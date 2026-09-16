@@ -307,10 +307,10 @@ function getTurningPoint(plays, dukeName, opponentName, playerNames = [], larges
   };
   const describePlay = (play) => {
     const text = play?.playText || '';
-    const pass = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+pass.*?to\s+#\d+\s+([A-Za-z]\.\S+)/i);
-    if (pass) return `${resolvePlayer(pass[1])} found ${resolvePlayer(pass[2])} for a touchdown`;
-    const rush = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+rush/i);
-    if (rush) return `${resolvePlayer(rush[1])} scored on the ground`;
+    const pass = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+pass.*?to\s+#\d+\s+([A-Za-z]\.\S+).*?for\s+(\d+)\s+yards?/i);
+    if (pass) return `${resolvePlayer(pass[1])} found ${resolvePlayer(pass[2])} for ${pass[3]} yards and a touchdown`;
+    const rush = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+rush.*?for\s+(\d+)\s+yards?/i);
+    if (rush) return `${resolvePlayer(rush[1])} rushed for ${rush[2]} yards and a touchdown`;
     const fieldGoal = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+field goal attempt from\s+(\d+)/i);
     if (fieldGoal) return `${resolvePlayer(fieldGoal[1])} hit a ${fieldGoal[2]}-yard field goal`;
     return null;
