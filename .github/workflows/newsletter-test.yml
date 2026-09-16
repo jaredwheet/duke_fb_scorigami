@@ -21,7 +21,10 @@ jobs:
 
       - name: Send test newsletter
         env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NEWSLETTER_TEST_TO: ${{ secrets.NEWSLETTER_TEST_TO }}
+          NEWSLETTER_USE_LIVE_DATA: 'true'
           RESEND_FROM_EMAIL: Duke Football Scorigami <onboarding@resend.dev>
         run: npm run newsletter:test
