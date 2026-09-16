@@ -35,6 +35,8 @@ INGEST_YEAR=2026 npm run ingest
 
 GitHub Actions also provides a manual **Canonical Data Ingestion** workflow. Run it with the target season before enabling an automatic ingestion schedule.
 
+That workflow also recalculates canonical Scorigami facts and persists tiered editorial directives in `game_facts` and `editorial_directives`.
+
 ## GitHub Actions
 
 The scheduled workflow requires these repository secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CFB_DATA_KEY`, `OPENAI_API_KEY`, `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, and `TWITTER_ACCESS_SECRET`. The Supabase service-role and OpenAI keys are server-only and must never be exposed in a public site or client application.

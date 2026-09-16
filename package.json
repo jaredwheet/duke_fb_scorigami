@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
-    "ingest": "node src/ingestion/runDukeIngestion.js"
+    "ingest": "node src/ingestion/runDukeIngestion.js",
+    "detect:facts": "node src/facts/runFactDetection.js"
   },
   "repository": {
     "type": "git",

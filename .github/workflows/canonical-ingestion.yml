@@ -36,3 +36,9 @@ jobs:
           CFB_DATA_KEY: ${{ secrets.CFB_DATA_KEY }}
           INGEST_YEAR: ${{ inputs.ingest_year || '2026' }}
         run: npm run ingest
+
+      - name: Calculate deterministic facts and directives
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run detect:facts
