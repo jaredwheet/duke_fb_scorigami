@@ -1,4 +1,4 @@
-import { fetchCfbDataGames } from './providers/cfbData.js';
+import { fetchCfbDataGameDetails, fetchCfbDataGames } from './providers/cfbData.js';
 import { normalizeCfbDataGame } from './normalize.js';
 
 export function buildMasterGameObject({
@@ -20,11 +20,16 @@ export async function ingestDukeSeason({
   enrichers = [],
 } = {}) {
   const rawGames = await cfbDataFetcher({ year, team: 'Duke' });
+  const configuredEnrichers = enrichers.length > 0
+    ? enrichers
+    : process.env.INGEST_DETAILS === 'true'
+      ? [fetchCfbDataGameDetails]
+      : [];
   const masterGames = [];
   for (const game of rawGames) {
     const masterGame = buildMasterGameObject({ cfbDataGame: game });
     const enrichmentResults = await Promise.all(
-      enrichers.map((enricher) => enricher(masterGame)),
+      configuredEnrichers.map((enricher) => enricher(masterGame)),
     );
     masterGame.enrichments = Object.fromEntries(
       enrichmentResults
@@ -115,6 +120,19 @@ export async function persistMasterGame(masterGame, client = null) {
         payload_hash: source.payloadHash,
         source_updated_at: source.sourceUpdatedAt,
       }, { onConflict: 'provider,external_game_id' });
+    if (error) throw error;
+  }
+
+  for (const enrichment of Object.values(masterGame.enrichments || {})) {
+    if (!enrichment?.data) continue;
+    const { error } = await db
+      .from('game_analytics')
+      .upsert({
+        game_id: game.id,
+        provider: enrichment.provider,
+        metric_set: enrichment.metricSet || 'enrichment',
+        payload: enrichment.data,
+      }, { onConflict: 'game_id,provider,metric_set' });
     if (error) throw error;
   }
 

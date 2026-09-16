@@ -8,6 +8,11 @@ on:
         required: false
         default: '2026'
         type: string
+      include_details:
+        description: 'Fetch team stats, player stats, and play-by-play data'
+        required: false
+        default: true
+        type: boolean
 
 concurrency:
   group: canonical-data-ingestion
@@ -35,6 +40,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           CFB_DATA_KEY: ${{ secrets.CFB_DATA_KEY }}
           INGEST_YEAR: ${{ inputs.ingest_year || '2026' }}
+          INGEST_DETAILS: ${{ inputs.include_details }}
         run: npm run ingest
 
       - name: Calculate deterministic facts and directives

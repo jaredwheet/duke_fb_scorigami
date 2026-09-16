@@ -25,3 +25,54 @@ export async function fetchCfbDataGames({
   if (!Array.isArray(games)) throw new Error('CFBData games response was not an array');
   return games;
 }
+
+async function fetchOptionalEndpoint(url, apiKey) {
+  try {
+    return { data: await fetchJson(url, apiKey), error: null };
+  } catch (error) {
+    return { data: null, error: error.message };
+  }
+}
+
+export async function fetchCfbDataGameDetails(masterGame, {
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey) return { provider: 'cfbdata', status: 'not_configured', metricSet: 'game_details', data: null };
+
+  const externalGameId = masterGame.sourceRecords[0]?.externalGameId;
+  if (!externalGameId) throw new Error('CFBData game details require an external game id');
+
+  const baseParams = new URLSearchParams({
+    year: String(masterGame.season),
+    gameId: externalGameId,
+  });
+  const requests = {
+    teamStats: fetchOptionalEndpoint(`https://api.collegefootballdata.com/games/teams?${baseParams}`, apiKey),
+    playerStats: fetchOptionalEndpoint(`https://api.collegefootballdata.com/games/players?${baseParams}`, apiKey),
+  };
+
+  if (masterGame.week != null) {
+    const playsParams = new URLSearchParams({
+      year: String(masterGame.season),
+      week: String(masterGame.week),
+      team: 'Duke',
+    });
+    requests.plays = fetchOptionalEndpoint(`https://api.collegefootballdata.com/plays?${playsParams}`, apiKey);
+  }
+
+  const entries = await Promise.all(Object.entries(requests).map(async ([key, promise]) => [key, await promise]));
+  const data = {};
+  const errors = {};
+  for (const [key, result] of entries) {
+    data[key] = result.data;
+    if (result.error) errors[key] = result.error;
+  }
+
+  return {
+    provider: 'cfbdata',
+    status: Object.keys(errors).length > 0 ? 'partial' : 'ok',
+    metricSet: 'game_details',
+    data,
+    errors,
+  };
+}

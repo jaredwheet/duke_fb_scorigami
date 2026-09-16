@@ -30,7 +30,7 @@ BACKFILL_DAYS=14 node src/index.js
 Canonical ingestion can be run separately after setting `INGEST_YEAR`:
 
 ```bash
-INGEST_YEAR=2026 npm run ingest
+INGEST_YEAR=2026 INGEST_DETAILS=true npm run ingest
 ```
 
 GitHub Actions also provides a manual **Canonical Data Ingestion** workflow. Run it with the target season before enabling an automatic ingestion schedule.
