@@ -264,7 +264,7 @@ function getTotalOffenseNumber(detailsPayload, dukeName, opponent) {
   };
 }
 
-function getTurningPoint(plays, dukeName) {
+function getTurningPoint(plays, dukeName, playerNames = []) {
   const ordered = (plays || []).slice().sort((left, right) => {
     const periodDifference = Number(left.period || 0) - Number(right.period || 0);
     if (periodDifference !== 0) return periodDifference;
@@ -273,7 +273,13 @@ function getTurningPoint(plays, dukeName) {
     return rightClock - leftClock;
   });
   const dukePlays = ordered.filter((play) => play.offense === dukeName);
-  const player = (play) => play.playText?.match(/#\d+\s+[A-Za-z]\.([A-Za-z][A-Za-z'-]*)/)?.[1] || null;
+  const resolvePlayer = (value) => {
+    const token = value?.match(/#\d+\s+[A-Za-z]\.([A-Za-z][A-Za-z'-]*)/)?.[1] || value;
+    if (!token) return null;
+    const surname = token.match(/^[A-Za-z]\.([A-Za-z][A-Za-z'-]*)$/)?.[1] || token;
+    return playerNames.find((name) => name.toLowerCase().endsWith(` ${surname.toLowerCase()}`)) || surname;
+  };
+  const player = (play) => resolvePlayer(play.playText);
   const time = (play) => `${String(play.clock?.minutes ?? 0).padStart(2, '0')}:${String(play.clock?.seconds ?? 0).padStart(2, '0')}`;
   const fakePunt = dukePlays.find((play) => /fake punt|punt fake|fake field goal/i.test(play.playText || ''));
   if (fakePunt) {
@@ -289,22 +295,37 @@ function getTurningPoint(plays, dukeName) {
     };
   }
 
-  const lateScore = dukePlays.find((play) => Number(play.period) >= 4 && play.scoring);
-  if (lateScore) {
-    const name = player(lateScore);
-    const yards = Number(lateScore.yardsGained);
-    const playType = String(lateScore.playType || '').toLowerCase();
-    const description = playType.includes('field goal') && Number.isFinite(yards)
-      ? `${name || 'Duke'} hit a ${yards}-yard field goal to give Duke breathing room.`
-      : name
-        ? `${name} delivered a late scoring play for Duke.`
-        : 'Duke delivered a late scoring play.';
+  const fourthDownStop = ordered.find((play) => play.offense !== dukeName
+    && Number(play.down) === 4
+    && /turnover on downs|fourth down|4th down/i.test(play.playText || ''));
+  if (fourthDownStop) {
     return {
-      type: 'late_score',
-      period: lateScore.period,
-      time: time(lateScore),
+      type: 'fourth_down_stop',
+      period: fourthDownStop.period,
+      time: time(fourthDownStop),
+      description: 'Duke got a fourth-down stop when Illinois needed to keep the drive alive.',
+      playText: fourthDownStop.playText,
+      factsUsed: ['game.scoring_plays'],
+    };
+  }
+
+  const touchdown = dukePlays.find((play) => Number(play.period) >= 3 && play.scoring && /touchdown/i.test(play.playType || play.playText || ''));
+  if (touchdown) {
+    const touchdownPass = touchdown.playText?.match(/#\d+\s+([A-Za-z]\.\S+)\s+pass.*?to\s+#\d+\s+([A-Za-z]\.\S+)/i);
+    const passer = resolvePlayer(touchdownPass?.[1]);
+    const receiver = resolvePlayer(touchdownPass?.[2]);
+    const rusher = player(touchdown);
+    const description = passer && receiver
+      ? `${passer} found ${receiver} for a second-half touchdown.`
+      : rusher
+        ? `${rusher} scored a second-half touchdown.`
+        : 'Duke scored a second-half touchdown.';
+    return {
+      type: 'touchdown',
+      period: touchdown.period,
+      time: time(touchdown),
       description,
-      playText: lateScore.playText,
+      playText: touchdown.playText,
       factsUsed: ['game.scoring_plays'],
     };
   }
@@ -456,7 +477,10 @@ export function buildSundayIssueData({
   const turnoverNumber = getTurnoverNumber(detailsPayload, dukeName, scores.opponent);
   const teamNumber = getFourthDownNumber(detailsPayload, dukeName, scores.opponent)
     || getTotalOffenseNumber(detailsPayload, dukeName, scores.opponent);
-  const turningPoint = getTurningPoint(plays, dukeName);
+  const playerNames = getPlayerBoxes(detailsPayload)
+    .flatMap((team) => (team.categories || []).flatMap((category) => (category.types || []).flatMap((type) => (type.athletes || []).map((athlete) => athlete.name))))
+    .filter(Boolean);
+  const turningPoint = getTurningPoint(plays, dukeName, playerNames);
   const winExpectancySnapshots = calculateWinExpectancySnapshots({
     plays,
     dukeName,

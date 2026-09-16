@@ -64,7 +64,7 @@ test('builds Sunday content from verified game and play facts', () => {
   expect(data.scorigami_status).toBe('FAMILIAR TERRITORY.');
   expect(data.source_url).toBe('https://www.winsipedia.com/duke/schedule/2026');
   expect(data.win_expectancy.snapshots.length).toBeGreaterThan(1);
-  expect(data.turning_point).toMatchObject({ type: 'late_score', description: expect.stringContaining('Salas') });
+  expect(data.turning_point).toBeNull();
 });
 
 test('keeps the rusher name in a live CFBData rushing touchdown description', () => {
@@ -117,6 +117,39 @@ test('captures a verified fake-punt turning point for editorial agents', () => {
   });
 
   expect(data.turning_point).toMatchObject({ type: 'fake_punt', factsUsed: ['game.scoring_plays'] });
+});
+
+test('uses canonical player names in a second-half touchdown moment', () => {
+  const data = buildSundayIssueData({
+    game: { season: 2026 },
+    participants: [
+      { team: { slug: 'duke', name: 'Duke' }, score: 31 },
+      { team: { slug: 'illinois', name: 'Illinois' }, score: 27 },
+    ],
+    detailsPayload: {
+      playerStats: [{ teams: [{
+        team: 'Duke',
+        categories: [
+          { name: 'passing', types: [{ name: 'C/ATT', athletes: [{ name: 'Walker Eget', stat: '15/21' }] }] },
+          { name: 'receiving', types: [{ name: 'REC', athletes: [{ name: 'Nate Sheppard', stat: '5' }] }] },
+        ],
+      }] }],
+      plays: [{
+        period: 3,
+        offense: 'Duke',
+        defense: 'Illinois',
+        offenseScore: 28,
+        defenseScore: 24,
+        scoring: true,
+        clock: { minutes: 10, seconds: 47 },
+        playText: '#2 W.Eget pass complete short left to #20 N.Sheppard for 3 yards TOUCHDOWN',
+        playType: 'Passing Touchdown',
+      }],
+    },
+    facts: {},
+  });
+
+  expect(data.turning_point).toMatchObject({ type: 'touchdown', description: 'Walker Eget found Nate Sheppard for a second-half touchdown.' });
 });
 
 test('adds prior Scorigami games and next-game network context', () => {
