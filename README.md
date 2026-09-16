@@ -39,6 +39,8 @@ That workflow also recalculates canonical Scorigami facts and persists tiered ed
 
 For email testing, add `RESEND_API_KEY` and `NEWSLETTER_TEST_TO` as GitHub Actions secrets, then run the manual **Newsletter Test** workflow. It uses Resend's `onboarding@resend.dev` test sender and does not send to the subscriber table.
 
+The **Duke Newsletter** workflow runs every 15 minutes and sends one issue per newly completed canonical game. Set `NEWSLETTER_TO` to the initial recipient; it falls back to `NEWSLETTER_TEST_TO` while the publication is in single-recipient testing. Issue and delivery state are persisted in `newsletter_issues`, `newsletter_issue_games`, `newsletter_subscribers`, and `newsletter_deliveries`, so scheduled retries do not resend a completed issue.
+
 ## Media Guide Reference Data
 
 The reviewed 2026 media guide is stored as a versioned reference artifact at `data/media-guides/2026.json`. It supplies roster context, the 2025 review, opponent series, program records, comeback history, and historical editorial facts. Canonical Supabase games and CFBData remain authoritative for live schedules, scores, play-by-play, and current statistics.

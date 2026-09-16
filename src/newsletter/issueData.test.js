@@ -63,6 +63,8 @@ test('builds Sunday content from verified game and play facts', () => {
   expect(data.leaders.passing[0]).toEqual({ name: 'Duke QB', line: '20/30, 250 YDS, 2 TD, 1 INT' });
   expect(data.scorigami_status).toBe('FAMILIAR TERRITORY.');
   expect(data.source_url).toBe('https://www.winsipedia.com/duke/schedule/2026');
+  expect(data.game_id).toBe(1);
+  expect(data.issue_date_key).toBe('2026-09-12');
   expect(data.win_expectancy.snapshots.length).toBeGreaterThan(1);
   expect(data.turning_point).toBeNull();
 });

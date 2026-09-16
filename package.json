@@ -9,6 +9,7 @@
     "ingest": "node src/ingestion/runDukeIngestion.js",
     "detect:facts": "node src/facts/runFactDetection.js",
     "newsletter:test": "node src/newsletter/sendTestNewsletter.js",
+    "newsletter:send": "node src/newsletter/sendNewsletter.js",
     "extract:guide": "node src/mediaGuide/extractPdf.js",
     "curate:guide": "node src/mediaGuide/curateGuide.js",
     "guide:preview": "node src/mediaGuide/printSeasonPreview.js",

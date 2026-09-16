@@ -1,9 +1,7 @@
 import 'dotenv/config';
 import { Resend } from 'resend';
-import { runEditorialOrchestrator } from '../ai/orchestrator.js';
-import { renderDevilInDetails } from './renderNewsletter.js';
 import { loadLatestSundayIssueData } from './loadSundayIssueData.js';
-import { renderWinExpectancyChart } from './winExpectancy.js';
+import { prepareNewsletter } from './newsletterEmail.js';
 
 const apiKey = process.env.RESEND_API_KEY;
 const recipient = process.env.NEWSLETTER_TEST_TO;
@@ -15,22 +13,10 @@ const resend = new Resend(apiKey);
 const deterministicIssueData = process.env.NEWSLETTER_USE_LIVE_DATA === 'true'
   ? await loadLatestSundayIssueData()
   : {};
-const editorialResult = deterministicIssueData.current_score
-  ? await runEditorialOrchestrator(deterministicIssueData)
-  : null;
-const issueData = editorialResult?.issueData || deterministicIssueData;
+const { issueData, html, chartBuffer, editorialResult } = await prepareNewsletter(deterministicIssueData);
 if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
 console.log(`Deterministic moment: ${deterministicIssueData.guide_context?.editorialMoment || deterministicIssueData.turning_point?.description || 'none'}`);
 console.log(`Rendered moment: ${issueData.guide_context?.editorialMoment || 'none'}`);
-const chartBuffer = issueData.win_expectancy?.snapshots?.length > 1
-  ? await renderWinExpectancyChart(issueData.win_expectancy.snapshots)
-  : null;
-const html = await renderDevilInDetails({
-  ...issueData,
-  win_expectancy: chartBuffer
-    ? { ...issueData.win_expectancy, imageSource: 'cid:duke-win-expectancy' }
-    : null,
-});
 const { data, error } = await resend.emails.send({
   from: process.env.RESEND_FROM_EMAIL || 'Duke Football Scorigami <onboarding@resend.dev>',
   to: [recipient],

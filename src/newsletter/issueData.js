@@ -481,6 +481,19 @@ function formatHistoricalGameDate(startAt) {
   }).format(new Date(startAt));
 }
 
+function formatIssueDateKey(startAt) {
+  const date = startAt ? new Date(startAt) : new Date();
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'America/New_York',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function buildScorigamiContext(scoreFacts, occurrences, fallbackScore) {
   const scorePair = scoreFacts.scorePair || fallbackScore;
   if (scoreFacts.isNew) return `${scorePair} had never occurred in Duke football history.`;
@@ -562,6 +575,8 @@ export function buildSundayIssueData({
   const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
 
   return {
+    game_id: game.id,
+    issue_date_key: formatIssueDateKey(game.start_at),
     subject: `Devil in the Details: Duke ${scores.dukeScore}-${scores.opponentScore}`,
     preview_text: `Duke ${scores.dukeScore}-${scores.opponentScore} vs ${scores.opponent}.`,
     current_opponent: scores.opponent,
