@@ -33,6 +33,21 @@ test('keeps snapshot progress monotonic when wall-clock order conflicts with gam
   expect(snapshots.every((snapshot, index) => index === 0 || snapshot.progress >= snapshots[index - 1].progress)).toBe(true);
 });
 
+test('keeps a touchdown instead of the ensuing kickoff at the same game clock', () => {
+  const snapshots = calculateWinExpectancySnapshots({
+    dukeName: 'Duke',
+    opponentName: 'Illinois',
+    dukeScore: 14,
+    opponentScore: 17,
+    plays: [
+      { period: 2, clock: { minutes: 7, seconds: 5 }, offense: 'Duke', defense: 'Illinois', offenseScore: 14, defenseScore: 17, scoring: true, playType: 'Rushing Touchdown', playText: '#20 N.Sheppard rush middle for 2 yards TOUCHDOWN' },
+      { period: 2, clock: { minutes: 7, seconds: 5 }, offense: 'Illinois', defense: 'Duke', offenseScore: 14, defenseScore: 17, scoring: false, playType: 'Kickoff', playText: '#39 C.Salas kickoff 65 yards to the ILL00, Touchback' },
+    ],
+  });
+
+  expect(snapshots.find((snapshot) => snapshot.progress > 0 && snapshot.progress < 1).play.playType).toBe('Rushing Touchdown');
+});
+
 test('renders a chart SVG and PNG', async () => {
   const snapshots = [{ progress: 0, expectancy: 0 }, { progress: 1, expectancy: 50 }];
   const svg = renderWinExpectancySvg(snapshots);
