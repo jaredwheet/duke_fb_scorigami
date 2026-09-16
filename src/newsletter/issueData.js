@@ -22,6 +22,7 @@ function getPlayScore(play, dukeName, opponentName) {
 
 function getQuarterRows(plays, dukeName, opponentName, dukeScore, opponentScore) {
   const sortedPlays = (plays || []).slice().sort((a, b) => (a.playNumber || 0) - (b.playNumber || 0));
+  const hasPlayData = sortedPlays.length > 0;
   let previousDuke = 0;
   let previousOpponent = 0;
   const quarters = [1, 2, 3, 4].map((period) => {
@@ -30,7 +31,7 @@ function getQuarterRows(plays, dukeName, opponentName, dukeScore, opponentScore)
       .map((play) => getPlayScore(play, dukeName, opponentName))
       .filter(Boolean);
     const snapshot = snapshots.at(-1);
-    if (!snapshot) return { duke: null, opponent: null };
+    if (!snapshot) return hasPlayData ? { duke: 0, opponent: 0 } : { duke: null, opponent: null };
     const result = {
       duke: snapshot.duke - previousDuke,
       opponent: snapshot.opponent - previousOpponent,
@@ -60,13 +61,36 @@ function getQuarterRows(plays, dukeName, opponentName, dukeScore, opponentScore)
   ];
 }
 
+function compactScoringDescription(play) {
+  const text = play.playText || '';
+  const fieldGoalYards = text.match(/field goal attempt from (\d+) yards/i)?.[1];
+  if (fieldGoalYards) return `Field goal, ${fieldGoalYards} yards`;
+
+  const touchdownYards = text.match(/for (\d+) yards.*?touchdown/i)?.[1];
+  if (touchdownYards) {
+    const type = /\brush\b/i.test(text) ? 'run' : 'pass';
+    return `${touchdownYards}-yard touchdown ${type}`;
+  }
+
+  return play.playType || 'Scoring play';
+}
+
 function getScoringRows(plays, dukeName) {
   return (plays || [])
     .filter((play) => play.scoring)
+    .slice()
+    .sort((a, b) => {
+      const periodDifference = (a.period || 0) - (b.period || 0);
+      if (periodDifference !== 0) return periodDifference;
+      const aSeconds = (a.clock?.minutes || 0) * 60 + (a.clock?.seconds || 0);
+      const bSeconds = (b.clock?.minutes || 0) * 60 + (b.clock?.seconds || 0);
+      return bSeconds - aSeconds;
+    })
     .map((play) => ({
-      team: play.offense === dukeName ? 'DUKE' : (play.offense || 'OPP').slice(0, 5).toUpperCase(),
-      period: `Q${play.period || '?'} ${String(play.clock?.minutes ?? 0).padStart(2, '0')}:${String(play.clock?.seconds ?? 0).padStart(2, '0')}`,
-      description: play.playText || play.playType || 'Scoring play',
+      team: play.offense === dukeName ? 'DUKE' : (play.offense || 'OPP').slice(0, 3).toUpperCase(),
+      quarter: play.period || null,
+      period: `${String(play.clock?.minutes ?? 0).padStart(2, '0')}:${String(play.clock?.seconds ?? 0).padStart(2, '0')}`,
+      description: compactScoringDescription(play),
     }));
 }
 
@@ -156,6 +180,14 @@ function getTurnoverNumber(detailsPayload, dukeName, opponent) {
   };
 }
 
+function getSecondHalfPointsAllowed(quarterRows) {
+  const opponentRow = quarterRows[1];
+  const thirdQuarter = numericStat(opponentRow?.q3);
+  const fourthQuarter = numericStat(opponentRow?.q4);
+  if (thirdQuarter == null || fourthQuarter == null) return null;
+  return thirdQuarter + fourthQuarter;
+}
+
 function buildLeadCopy({ dukeScore, opponentScore, opponent, dukeRole, turnoverNumber, summaryStats }) {
   const score = `${dukeScore}-${opponentScore}`;
   const won = dukeScore > opponentScore;
@@ -207,6 +239,7 @@ export function buildSundayIssueData({
   detailsPayload,
   facts,
   directive,
+  guideContext = null,
   nextGame,
   nextParticipants = [],
 }) {
@@ -221,7 +254,7 @@ export function buildSundayIssueData({
     scores.opponentScore,
   );
   const scoringRows = getScoringRows(plays, dukeName);
-  const fourthQuarterPoints = quarterRows[0]?.q4;
+  const secondHalfPointsAllowed = getSecondHalfPointsAllowed(quarterRows);
   const scoreFacts = facts?.scorigami || {};
   const turnoverNumber = getTurnoverNumber(detailsPayload, dukeName, scores.opponent);
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
@@ -244,7 +277,13 @@ export function buildSundayIssueData({
     quarters: quarterRows,
     scoring_plays: scoringRows,
     numbers: [
-      { value: fourthQuarterPoints ?? '—', label: 'FOURTH-QUARTER POINTS', detail: 'Derived from verified play-by-play.' },
+      {
+        value: secondHalfPointsAllowed ?? '—',
+        label: 'SECOND-HALF POINTS ALLOWED',
+        detail: secondHalfPointsAllowed == null
+          ? 'Duke\'s second-half defensive total.'
+          : `Duke held ${scores.opponent} to ${secondHalfPointsAllowed} point${secondHalfPointsAllowed === 1 ? '' : 's'} after halftime.`,
+      },
       { value: turnoverNumber?.value || '—', label: 'TURNOVER MARGIN', detail: turnoverNumber?.detail || 'Awaiting a verified team-stat feed.' },
       { value: plays.length || '—', label: 'RECORDED PLAYS', detail: 'CFBData play-by-play records.' },
     ],
@@ -253,6 +292,7 @@ export function buildSundayIssueData({
     scorigami_context: scoreFacts.isNew
       ? `${scoreFacts.scorePair || `${scores.dukeScore}-${scores.opponentScore}`} had never occurred in Duke football history.`
       : `${scoreFacts.scorePair || `${scores.dukeScore}-${scores.opponentScore}`} has occurred ${scoreFacts.occurrenceCount ?? 0} previous time${scoreFacts.occurrenceCount === 1 ? '' : 's'} in Duke football history.`,
+    guide_context: guideContext,
     acc_scores: [],
     next_opponent: nextOpponent,
     next_details: nextDetails,

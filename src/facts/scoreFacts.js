@@ -41,6 +41,7 @@ export function calculateDukeScoreFacts(games) {
         scorigami: {
           isNew: previous == null,
           scorePair,
+          score: scorePair,
           dukeScore: duke.score,
           opponentScore: opponent.score,
           opponent: opponent.team.name,

@@ -39,6 +39,19 @@ That workflow also recalculates canonical Scorigami facts and persists tiered ed
 
 For email testing, add `RESEND_API_KEY` and `NEWSLETTER_TEST_TO` as GitHub Actions secrets, then run the manual **Newsletter Test** workflow. It uses Resend's `onboarding@resend.dev` test sender and does not send to the subscriber table.
 
+## Media Guide Reference Data
+
+The reviewed 2026 media guide is stored as a versioned reference artifact at `data/media-guides/2026.json`. It supplies roster context, the 2025 review, opponent series, program records, comeback history, and historical editorial facts. Canonical Supabase games and CFBData remain authoritative for live schedules, scores, play-by-play, and current statistics.
+
+Extract and validate the PDF locally with:
+
+```bash
+npm run extract:guide
+npm run curate:guide
+```
+
+The extraction command writes ignored page-level text to `data/generated/`; the application does not parse the PDF during newsletter rendering. `npm run guide:preview` prints the structured 2026 season-preview contract. The optional Supabase migration `supabase/migrations/20260916150000_add_media_guide_claims.sql` and `npm run import:guide` provide a durable, citation-backed claims store after the migration is applied.
+
 ## GitHub Actions
 
 The scheduled workflow requires these repository secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CFB_DATA_KEY`, `OPENAI_API_KEY`, `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, and `TWITTER_ACCESS_SECRET`. The Supabase service-role and OpenAI keys are server-only and must never be exposed in a public site or client application.

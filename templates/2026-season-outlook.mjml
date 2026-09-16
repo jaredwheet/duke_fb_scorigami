@@ -1,0 +1,68 @@
+<mjml>
+  <mj-head>
+    <mj-title>{{headline}}</mj-title>
+    <mj-preview>{{subheadline}}</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Courier New, Courier, monospace" color="#101820" />
+      <mj-text padding="0" />
+      <mj-section padding="0" />
+      <mj-table padding="0" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#d9d2c3">
+    <mj-section background-color="#f8f4ea" padding="28px 24px 12px">
+      <mj-column>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="38px" line-height="1" font-weight="800">{{headline}}</mj-text>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="17px" line-height="1.35" font-weight="700" padding-top="12px">{{subheadline}}</mj-text>
+        <mj-text font-size="14px" line-height="1.5" padding-top="12px">{{outlook}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#101820" padding="18px 24px">
+      <mj-column>
+        <mj-text color="#f8f4ea" font-size="12px" letter-spacing="3px" font-weight="700">THE BASELINE</mj-text>
+        <mj-text color="#f8f4ea" font-size="14px" padding-top="10px">{{previous_record}}</mj-text>
+        <mj-text color="#f8f4ea" font-size="14px" padding-top="6px">{{record_summary}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="24px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">FEATURED PLAYERS</mj-text>
+        <mj-table font-size="12px" line-height="1.4" padding-top="10px">{{featured_rows}}</mj-table>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="8px 24px 24px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">POSITIONAL BREAKDOWN</mj-text>
+        <mj-table font-size="12px" line-height="1.4" padding-top="10px">{{position_rows}}</mj-table>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#003087" padding="20px 24px">
+      <mj-column>
+        <mj-text color="#ffffff" font-size="12px" letter-spacing="3px" font-weight="700">PORTAL ADDITIONS</mj-text>
+        <mj-table color="#ffffff" font-size="12px" line-height="1.4" padding-top="10px">{{portal_rows}}</mj-table>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="24px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">2026 SCHEDULE</mj-text>
+        <mj-table font-size="12px" line-height="1.4" padding-top="10px">{{schedule_rows}}</mj-table>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="8px 24px 24px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">2025 REVIEW</mj-text>
+        <mj-table font-size="12px" line-height="1.5" padding-top="10px">{{review_rows}}</mj-table>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700" padding-top="22px">DUKE HISTORY</mj-text>
+        <mj-table font-size="12px" line-height="1.5" padding-top="10px">{{history_rows}}</mj-table>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700" padding-top="22px">HISTORICAL PLAYERS</mj-text>
+        <mj-table font-size="12px" line-height="1.5" padding-top="10px">{{player_history_rows}}</mj-table>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

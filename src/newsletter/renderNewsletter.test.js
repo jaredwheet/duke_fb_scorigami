@@ -13,3 +13,21 @@ test('renders the Sunday MJML template into HTML', async () => {
   expect(html).toContain('white-space:nowrap');
   expect(html).toContain('>TIME</th>');
 });
+
+test('renders optional guide-backed history sections', async () => {
+  const html = await renderDevilInDetails({
+    guide_context: {
+      recordWatch: { statement: 'Test Runner set a new Duke record.', citation: { pageStart: 127 } },
+      comeback: { comeback: true, largestDeficit: 14, trailingAt: 'Q2 05:00' },
+      lateGame: { lateGameWin: true, period: 4, time: '00:30' },
+      opponentHistory: { statement: 'Duke leads the series 45-37-5.' },
+      historicalFact: { statement: 'Duke won a historic game.' },
+    },
+  });
+
+  expect(html).toContain('RECORD WATCH');
+  expect(html).toContain('FROM THE DUKE RECORD');
+  expect(html).toContain('Test Runner set a new Duke record.');
+  expect(html).toContain('Duke leads the series 45-37-5.');
+  expect(html).toContain('LATE GAME');
+});

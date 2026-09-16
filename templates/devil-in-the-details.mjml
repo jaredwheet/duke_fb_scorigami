@@ -95,6 +95,8 @@
       </mj-column>
     </mj-section>
 
+    {{guide_sections}}
+
     <mj-section background-color="#003087" padding="20px 24px">
       <mj-column>
         <mj-text color="#ffffff" font-size="12px" letter-spacing="3px" font-weight="700">SCORIGAMI WATCH</mj-text>

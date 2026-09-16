@@ -1,4 +1,6 @@
 import supabase from '../supabaseClient.js';
+import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
+import { buildGuideContext } from './guideContext.js';
 import { buildSundayIssueData } from './issueData.js';
 
 async function loadParticipants(client, gameId) {
@@ -51,6 +53,19 @@ export async function loadLatestSundayIssueData(client = supabase) {
   const nextGame = nextGames?.[0] || null;
   const nextParticipants = nextGame ? await loadParticipants(client, nextGame.id) : [];
 
+  let guideContext = null;
+  try {
+    guideContext = buildGuideContext({
+      guide: loadMediaGuide(),
+      game,
+      participants,
+      detailsPayload: analytics?.[0]?.payload || {},
+      facts: factRows?.[0]?.value || {},
+    });
+  } catch (error) {
+    console.warn(`Media-guide context unavailable: ${error.message}`);
+  }
+
   return buildSundayIssueData({
     game,
     participants,
@@ -58,6 +73,7 @@ export async function loadLatestSundayIssueData(client = supabase) {
     detailsPayload: analytics?.[0]?.payload || {},
     facts: factRows?.[0]?.value || {},
     directive: directives?.[0] || null,
+    guideContext,
     nextGame,
     nextParticipants,
   });

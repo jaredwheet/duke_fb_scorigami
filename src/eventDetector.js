@@ -49,6 +49,16 @@ export function detectEvents(masterGame) {
     }));
   }
 
+  if (facts.narrative?.lateGameWin === true) {
+    directives.push(directive({
+      key: 'late_game_win',
+      tier: 2,
+      priority: 72,
+      facts: facts.narrative,
+      issueTypes: ['sunday', 'watercooler'],
+    }));
+  }
+
   if (facts.narrative?.upset === true) {
     directives.push(directive({
       key: 'upset',
