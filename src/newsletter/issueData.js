@@ -370,6 +370,7 @@ export function buildSundayIssueData({
   nextParticipants = [],
   nextSchedule = null,
   scorigamiHistory = [],
+  accContext = null,
 }) {
   const scores = getScoreDetails(game, participants);
   const dukeName = participants.find((participant) => isDuke(participant.team))?.team?.name || 'Duke';
@@ -420,6 +421,7 @@ export function buildSundayIssueData({
     scorigami_context: buildScorigamiContext(scoreFacts, scorigamiHistory, `${scores.dukeScore}-${scores.opponentScore}`),
     guide_context: guideContext,
     acc_scores: [],
+    acc_context: accContext,
     next_opponent: nextOpponent,
     next_details: nextDetails,
     source_url: `https://www.winsipedia.com/duke/schedule/${game.season}`,

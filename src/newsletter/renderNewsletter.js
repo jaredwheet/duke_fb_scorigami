@@ -59,13 +59,45 @@ function buildLeaderRows(title, rows = []) {
 }
 
 function buildAccRows(rows = []) {
-  return rows.map((row) => `
+  if (Array.isArray(rows)) {
+    if (rows.length === 0) return '<tr><td colspan="3" style="padding:8px 4px;">Conference results are not available.</td></tr>';
+    return rows.map((row) => `
+      <tr style="border-bottom:1px solid #b5ad9f;">
+        <td style="padding:5px 4px;">${escapeHtml(row.away)}</td>
+        <td style="padding:5px 4px;">${escapeHtml(row.home)}</td>
+        <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.score)}</td>
+      </tr>
+    `).join('');
+  }
+
+  const standings = rows?.standings || [];
+  const results = rows?.results || [];
+  const standingsRows = standings.map((row) => `
+    <tr style="border-bottom:1px solid #b5ad9f;">
+      <td style="padding:5px 4px;">${escapeHtml(row.team)}</td>
+      <td align="right" style="padding:5px 4px;">${escapeHtml(row.conferenceRecord)}</td>
+      <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.overallRecord)}</td>
+    </tr>
+  `).join('');
+  const resultRows = results.map((row) => `
     <tr style="border-bottom:1px solid #b5ad9f;">
       <td style="padding:5px 4px;">${escapeHtml(row.away)}</td>
       <td style="padding:5px 4px;">${escapeHtml(row.home)}</td>
       <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.score)}</td>
     </tr>
   `).join('');
+  const empty = '<tr><td colspan="3" style="padding:8px 4px;">Conference results are not available.</td></tr>';
+  return `
+    <tr><th colspan="3" align="left" style="padding:8px 4px 4px;font-size:11px;letter-spacing:2px;">ACC STANDINGS</th></tr>
+    <tr style="border-bottom:1px solid #101820;">
+      <th align="left" style="padding:4px;">TEAM</th>
+      <th align="right" style="padding:4px;">CONF.</th>
+      <th align="right" style="padding:4px;">OVERALL</th>
+    </tr>
+    ${standingsRows || empty}
+    <tr><th colspan="3" align="left" style="padding:18px 4px 4px;font-size:11px;letter-spacing:2px;">YESTERDAY'S RESULTS</th></tr>
+    ${resultRows || empty}
+  `;
 }
 
 function formatQuarter(value) {
@@ -179,7 +211,7 @@ export async function renderDevilInDetails(data = {}) {
     rushing_rows: buildLeaderRows('RUSHING', input.leaders?.rushing),
     receiving_rows: buildLeaderRows('RECEIVING', input.leaders?.receiving),
     defense_rows: buildLeaderRows('DEFENSE', input.leaders?.defense),
-    acc_rows: buildAccRows(input.acc_scores),
+    acc_rows: buildAccRows(input.acc_context || input.acc_scores),
     number_one_value: input.numbers?.[0]?.value || '',
     number_one_label: input.numbers?.[0]?.label || '',
     number_one_detail: input.numbers?.[0]?.detail || '',

@@ -34,3 +34,17 @@ test('renders optional guide-backed history sections', async () => {
   expect(html).toContain('Duke trailed by 14 points in the second quarter before rallying.');
   expect(html).toContain('font-size:14px;line-height:1.45');
 });
+
+test('renders ACC standings and final results', async () => {
+  const html = await renderDevilInDetails({
+    acc_context: {
+      standings: [{ team: 'Duke', conferenceRecord: '1-0', overallRecord: '2-0' }],
+      results: [{ away: 'Boston College', home: 'Clemson', score: '14-31' }],
+    },
+  });
+
+  expect(html).toContain('ACC STANDINGS');
+  expect(html).toContain("YESTERDAY'S RESULTS");
+  expect(html).toContain('Boston College');
+  expect(html).toContain('1-0');
+});

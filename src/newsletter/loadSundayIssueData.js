@@ -1,6 +1,7 @@
 import supabase from '../supabaseClient.js';
 import { normalizeOpponentSlug } from '../mediaGuide/guideFacts.js';
 import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
+import { loadAccContext } from './accData.js';
 import { buildGuideContext } from './guideContext.js';
 import { buildSundayIssueData } from './issueData.js';
 
@@ -142,6 +143,17 @@ export async function loadLatestSundayIssueData(client = supabase) {
     console.warn(`Media-guide context unavailable: ${error.message}`);
   }
 
+  let accContext = null;
+  try {
+    accContext = await loadAccContext({
+      season: game.season,
+      week: game.week,
+      currentGameId: sourceRecords?.[0]?.payload?.id,
+    });
+  } catch (error) {
+    console.warn(`Around the ACC data unavailable: ${error.message}`);
+  }
+
   return buildSundayIssueData({
     game,
     participants,
@@ -154,5 +166,6 @@ export async function loadLatestSundayIssueData(client = supabase) {
     nextParticipants,
     nextSchedule: findNextGuideSchedule(guide, nextGame, nextParticipants),
     scorigamiHistory,
+    accContext,
   });
 }
