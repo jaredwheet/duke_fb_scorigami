@@ -39,12 +39,15 @@ test('renders ACC standings and final results', async () => {
   const html = await renderDevilInDetails({
     acc_context: {
       standings: [{ team: 'Duke', conferenceRecord: '1-0', overallRecord: '2-0' }],
-      results: [{ away: 'Boston College', home: 'Clemson', score: '14-31' }],
+      results: [{ winner: 'Clemson', loser: 'Boston College', score: '31-14' }],
     },
   });
 
   expect(html).toContain('ACC STANDINGS');
   expect(html).toContain("YESTERDAY'S RESULTS");
   expect(html).toContain('Boston College');
+  expect(html).toContain('>WINNER</th>');
+  expect(html).toContain('>LOSER</th>');
+  expect(html).toContain('31-14');
   expect(html).toContain('1-0');
 });

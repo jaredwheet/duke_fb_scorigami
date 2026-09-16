@@ -63,8 +63,8 @@ function buildAccRows(rows = []) {
     if (rows.length === 0) return '<tr><td colspan="3" style="padding:8px 4px;">Conference results are not available.</td></tr>';
     return rows.map((row) => `
       <tr style="border-bottom:1px solid #b5ad9f;">
-        <td style="padding:5px 4px;">${escapeHtml(row.away)}</td>
-        <td style="padding:5px 4px;">${escapeHtml(row.home)}</td>
+        <td style="padding:5px 4px;">${escapeHtml(row.winner || row.away)}</td>
+        <td style="padding:5px 4px;">${escapeHtml(row.loser || row.home)}</td>
         <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.score)}</td>
       </tr>
     `).join('');
@@ -81,8 +81,8 @@ function buildAccRows(rows = []) {
   `).join('');
   const resultRows = results.map((row) => `
     <tr style="border-bottom:1px solid #b5ad9f;">
-      <td style="padding:5px 4px;">${escapeHtml(row.away)}</td>
-      <td style="padding:5px 4px;">${escapeHtml(row.home)}</td>
+      <td style="padding:5px 4px;">${escapeHtml(row.winner)}</td>
+      <td style="padding:5px 4px;">${escapeHtml(row.loser)}</td>
       <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.score)}</td>
     </tr>
   `).join('');
@@ -96,6 +96,11 @@ function buildAccRows(rows = []) {
     </tr>
     ${standingsRows || empty}
     <tr><th colspan="3" align="left" style="padding:18px 4px 4px;font-size:11px;letter-spacing:2px;">YESTERDAY'S RESULTS</th></tr>
+    <tr style="border-bottom:1px solid #101820;">
+      <th align="left" style="padding:4px;">WINNER</th>
+      <th align="left" style="padding:4px;">LOSER</th>
+      <th align="right" style="padding:4px;">SCORE</th>
+    </tr>
     ${resultRows || empty}
   `;
 }

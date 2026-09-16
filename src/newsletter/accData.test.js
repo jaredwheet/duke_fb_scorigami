@@ -15,5 +15,5 @@ test('normalizes ACC standings and excludes the current Duke game from results',
   });
 
   expect(context.standings[0]).toMatchObject({ team: 'Duke', conferenceRecord: '1-0', overallRecord: '2-0' });
-  expect(context.results).toEqual([{ away: 'Boston College', home: 'Clemson', score: '14-31', startDate: '2026-09-12T16:00:00Z' }]);
+  expect(context.results).toEqual([{ winner: 'Clemson', loser: 'Boston College', score: '31-14', startDate: '2026-09-12T16:00:00Z' }]);
 });

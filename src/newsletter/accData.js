@@ -41,12 +41,17 @@ export function normalizeAccContext({ records = [], games = [], currentGameId = 
       && game.homePoints != null
       && String(game.id) !== String(currentGameId))
     .sort((left, right) => new Date(left.startDate) - new Date(right.startDate))
-    .map((game) => ({
-      away: game.awayTeam,
-      home: game.homeTeam,
-      score: `${game.awayPoints}-${game.homePoints}`,
-      startDate: game.startDate,
-    }));
+    .map((game) => {
+      const awayScore = Number(game.awayPoints);
+      const homeScore = Number(game.homePoints);
+      const homeWon = homeScore > awayScore;
+      return {
+        winner: homeWon ? game.homeTeam : game.awayTeam,
+        loser: homeWon ? game.awayTeam : game.homeTeam,
+        score: homeWon ? `${homeScore}-${awayScore}` : `${awayScore}-${homeScore}`,
+        startDate: game.startDate,
+      };
+    });
 
   return { standings, results };
 }
