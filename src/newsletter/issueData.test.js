@@ -90,3 +90,31 @@ test('keeps the rusher name in a live CFBData rushing touchdown description', ()
 
   expect(data.scoring_plays[0].description).toBe('Sheppard, 2-yard touchdown run');
 });
+
+test('adds prior Scorigami games and next-game network context', () => {
+  const data = buildSundayIssueData({
+    game: { season: 2026 },
+    participants: [
+      { team: { slug: 'duke', name: 'Duke' }, score: 31 },
+      { team: { slug: 'illinois', name: 'Illinois' }, score: 27 },
+    ],
+    detailsPayload: {},
+    facts: { scorigami: { isNew: false, scorePair: '27-31', occurrenceCount: 2 } },
+    scorigamiHistory: [{
+      startAt: '2025-11-01T19:00:00Z',
+      opponent: 'Georgia Tech',
+      dukeScore: 27,
+      opponentScore: 31,
+      location: 'Wallace Wade Stadium, Durham, NC',
+    }],
+    nextGame: { start_at: '2026-09-19T20:00:00Z', venue_name: 'Wallace Wade Stadium' },
+    nextParticipants: [
+      { team: { slug: 'duke', name: 'Duke' } },
+      { team: { slug: 'stanford', name: 'Stanford' } },
+    ],
+    nextSchedule: { network: 'The CW' },
+  });
+
+  expect(data.scorigami_context).toContain('Previous games: Duke 27, Georgia Tech 31 on November 1, 2025 at Wallace Wade Stadium, Durham, NC.');
+  expect(data.next_details).toBe('Saturday, September 19 · 4:00 PM ET · Wallace Wade Stadium · TV: The CW');
+});

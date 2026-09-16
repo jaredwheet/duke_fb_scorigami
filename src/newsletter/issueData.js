@@ -314,6 +314,50 @@ function buildLeadCopy({ dukeScore, opponentScore, opponent, dukeRole, turnoverN
   };
 }
 
+function formatHistoricalGameDate(startAt) {
+  if (!startAt) return null;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date(startAt));
+}
+
+function buildScorigamiContext(scoreFacts, occurrences, fallbackScore) {
+  const scorePair = scoreFacts.scorePair || fallbackScore;
+  if (scoreFacts.isNew) return `${scorePair} had never occurred in Duke football history.`;
+
+  const count = scoreFacts.occurrenceCount ?? occurrences.length;
+  const previousGames = occurrences
+    .map((occurrence) => {
+      const date = formatHistoricalGameDate(occurrence.startAt);
+      const location = occurrence.location ? ` at ${occurrence.location}` : '';
+      return `Duke ${occurrence.dukeScore}, ${occurrence.opponent} ${occurrence.opponentScore}${date ? ` on ${date}` : ''}${location}`;
+    })
+    .join('; ');
+  const base = `${scorePair} has occurred ${count} previous time${count === 1 ? '' : 's'} in Duke football history.`;
+  return previousGames ? `${base} Previous games: ${previousGames}.` : base;
+}
+
+function formatNextDetails(nextGame, nextSchedule) {
+  if (!nextGame?.start_at) return 'Schedule details are not yet available.';
+  const startAt = new Date(nextGame.start_at);
+  const date = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(startAt);
+  const time = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/New_York',
+  }).format(startAt);
+  const network = nextSchedule?.network && nextSchedule.network !== 'TBA' ? nextSchedule.network : 'TBD';
+  return `${date} · ${time} ET · ${nextGame.venue_name || 'Venue TBD'} · TV: ${network}`;
+}
+
 export function buildSundayIssueData({
   game,
   participants,
@@ -324,6 +368,8 @@ export function buildSundayIssueData({
   guideContext = null,
   nextGame,
   nextParticipants = [],
+  nextSchedule = null,
+  scorigamiHistory = [],
 }) {
   const scores = getScoreDetails(game, participants);
   const dukeName = participants.find((participant) => isDuke(participant.team))?.team?.name || 'Duke';
@@ -342,9 +388,7 @@ export function buildSundayIssueData({
   const teamNumber = getFourthDownNumber(detailsPayload, dukeName, scores.opponent)
     || getTotalOffenseNumber(detailsPayload, dukeName, scores.opponent);
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
-  const nextDetails = nextGame
-    ? `${new Date(nextGame.start_at).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${nextGame.venue_name || 'Venue TBD'} · TV: TBD`
-    : 'Schedule details are not yet available.';
+  const nextDetails = formatNextDetails(nextGame, nextSchedule);
   const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
 
   return {
@@ -373,9 +417,7 @@ export function buildSundayIssueData({
     ],
     leaders: getLeaders(detailsPayload, dukeName),
     scorigami_status: scoreFacts.isNew ? 'NEW SCORE!' : 'FAMILIAR TERRITORY.',
-    scorigami_context: scoreFacts.isNew
-      ? `${scoreFacts.scorePair || `${scores.dukeScore}-${scores.opponentScore}`} had never occurred in Duke football history.`
-      : `${scoreFacts.scorePair || `${scores.dukeScore}-${scores.opponentScore}`} has occurred ${scoreFacts.occurrenceCount ?? 0} previous time${scoreFacts.occurrenceCount === 1 ? '' : 's'} in Duke football history.`,
+    scorigami_context: buildScorigamiContext(scoreFacts, scorigamiHistory, `${scores.dukeScore}-${scores.opponentScore}`),
     guide_context: guideContext,
     acc_scores: [],
     next_opponent: nextOpponent,
