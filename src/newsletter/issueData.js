@@ -63,14 +63,17 @@ function getQuarterRows(plays, dukeName, opponentName, dukeScore, opponentScore)
 
 function formatPlayerName(value) {
   const name = String(value || '')
+    .replace(/^#\d+\s+/, '')
     .replace(/\s+/g, ' ')
     .replace(/\s*\(.*$/, '')
     .trim();
   if (!name) return null;
-  if (name === name.toUpperCase() || name === name.toLowerCase()) {
-    return name.toLowerCase().replace(/(^|[\s'-])([a-z])/g, (_, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
+  const initialsAndSurname = name.match(/^[A-Za-z]\.([A-Za-z][A-Za-z'-]*)$/);
+  const normalizedName = initialsAndSurname?.[1] || name;
+  if (normalizedName === normalizedName.toUpperCase() || normalizedName === normalizedName.toLowerCase()) {
+    return normalizedName.toLowerCase().replace(/(^|[\s'-])([a-z])/g, (_, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
   }
-  return name;
+  return normalizedName;
 }
 
 function playerField(play, fields) {
@@ -86,15 +89,16 @@ function playerField(play, fields) {
 function compactScoringDescription(play) {
   const text = play.playText || '';
   const fieldGoalYards = text.match(/field goal attempt from (\d+) yards/i)?.[1];
-  const guideFieldGoal = text.match(/^(.+?)\s+(\d+)\s*Yd\s+Field Goal/i);
-  const fieldGoalPlayer = formatPlayerName(guideFieldGoal?.[1]) || playerField(play, ['kicker', 'kickerName', 'scorer', 'player', 'athlete']);
-  if (fieldGoalYards || guideFieldGoal) {
-    const yards = fieldGoalYards || guideFieldGoal[2];
+  const fieldGoalPlayerMatch = text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*)\s+field goal attempt from\s+(\d+)\s+yards/i);
+  const guideFieldGoal = text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*)\s+(\d+)\s*Yd\s+Field Goal/i);
+  const fieldGoalPlayer = formatPlayerName(fieldGoalPlayerMatch?.[1] || guideFieldGoal?.[1]) || playerField(play, ['kicker', 'kickerName', 'scorer', 'player', 'athlete']);
+  if (fieldGoalYards || fieldGoalPlayerMatch || guideFieldGoal) {
+    const yards = fieldGoalYards || fieldGoalPlayerMatch?.[2] || guideFieldGoal?.[2];
     return fieldGoalPlayer ? `${fieldGoalPlayer}, ${yards}-yard field goal` : `Field goal, ${yards} yards`;
   }
 
-  const passTouchdown = text.match(/^(.+?)\s+pass(?:es|ed)?(?:\s+complete)?\s+to\s+(.+?)\s+for\s+(\d+)\s+yards?.*touchdown/i);
-  const guidePassTouchdown = text.match(/^(.+?)\s+(\d+)\s*Yd\s+Pass from\s+(.+?)(?:\s*\(|$)/i);
+  const passTouchdown = text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*)\s+pass(?:es|ed)?\s+[^,]*?\s+to\s+(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*).*?\bfor\s+(\d+)\s+yards?.*touchdown/i);
+  const guidePassTouchdown = text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*)\s+(\d+)\s*Yd\s+Pass from\s+([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*)/i);
   if (passTouchdown || guidePassTouchdown) {
     const receiver = formatPlayerName(passTouchdown?.[2] || guidePassTouchdown?.[1]);
     const passer = formatPlayerName(passTouchdown?.[1] || guidePassTouchdown?.[3]);
@@ -102,8 +106,8 @@ function compactScoringDescription(play) {
     if (passer && receiver) return `${passer} to ${receiver}, ${yards}-yard touchdown`;
   }
 
-  const rushTouchdown = text.match(/^(.+?)\s+(\d+)\s*Yd\s+(?:Rush|Run)/i)
-    || text.match(/^(.+?)\s+(?:rush|runs?)\s+for\s+(\d+)\s+yards?.*touchdown/i);
+  const rushTouchdown = text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*|[A-Za-z][A-Za-z'-]*)\s+(\d+)\s*Yd\s+(?:Rush|Run)/i)
+    || text.match(/(?:^|\s)(?:#\d+\s+)?([A-Za-z]\.[A-Za-z][A-Za-z'-]*)\s+(?:rush|runs?)\s+for\s+(\d+)\s+yards?.*touchdown/i);
   if (rushTouchdown) {
     const rusher = formatPlayerName(rushTouchdown[1]) || playerField(play, ['rusher', 'scorer', 'player', 'athlete']);
     const yards = rushTouchdown[2];
@@ -218,9 +222,43 @@ function getTurnoverNumber(detailsPayload, dukeName, opponent) {
   const margin = opponentTurnovers - dukeTurnovers;
   return {
     value: margin > 0 ? `+${margin}` : String(margin),
-    detail: `Duke ${dukeTurnovers}, ${opponent} ${opponentTurnovers}.`,
+    detail: `Turnovers: Duke ${dukeTurnovers}, ${opponent} ${opponentTurnovers}.`,
     dukeTurnovers,
     opponentTurnovers,
+  };
+}
+
+function parseMadeAttempts(value) {
+  const [made, attempts] = String(value ?? '').split('-').map(Number);
+  if (!Number.isFinite(made) || !Number.isFinite(attempts)) return null;
+  return { made, attempts };
+}
+
+function getFourthDownNumber(detailsPayload, dukeName, opponent) {
+  const teamBoxes = getTeamBoxes(detailsPayload);
+  const dukeStats = getTeamStats(teamBoxes.find((team) => team.team === dukeName));
+  const opponentStats = getTeamStats(teamBoxes.find((team) => team.team === opponent));
+  const dukeFourthDown = parseMadeAttempts(dukeStats.fourthDownEff);
+  const opponentFourthDown = parseMadeAttempts(opponentStats.fourthDownEff);
+  if (!dukeFourthDown || !opponentFourthDown) return null;
+
+  return {
+    value: `${dukeFourthDown.made}-${dukeFourthDown.attempts}`,
+    label: 'FOURTH-DOWN CONVERSIONS',
+    detail: `Duke converted ${dukeFourthDown.made} of ${dukeFourthDown.attempts} fourth downs; ${opponent} converted ${opponentFourthDown.made} of ${opponentFourthDown.attempts}.`,
+  };
+}
+
+function getTotalOffenseNumber(detailsPayload, dukeName, opponent) {
+  const teamBoxes = getTeamBoxes(detailsPayload);
+  const dukeYards = numericStat(getTeamStats(teamBoxes.find((team) => team.team === dukeName)).totalYards);
+  const opponentYards = numericStat(getTeamStats(teamBoxes.find((team) => team.team === opponent)).totalYards);
+  if (dukeYards == null || opponentYards == null) return null;
+
+  return {
+    value: dukeYards,
+    label: 'TOTAL OFFENSE',
+    detail: `Duke totaled ${dukeYards} yards; ${opponent} totaled ${opponentYards}.`,
   };
 }
 
@@ -301,6 +339,8 @@ export function buildSundayIssueData({
   const secondHalfPointsAllowed = getSecondHalfPointsAllowed(quarterRows);
   const scoreFacts = facts?.scorigami || {};
   const turnoverNumber = getTurnoverNumber(detailsPayload, dukeName, scores.opponent);
+  const teamNumber = getFourthDownNumber(detailsPayload, dukeName, scores.opponent)
+    || getTotalOffenseNumber(detailsPayload, dukeName, scores.opponent);
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
   const nextDetails = nextGame
     ? `${new Date(nextGame.start_at).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${nextGame.venue_name || 'Venue TBD'} · TV: TBD`
@@ -329,7 +369,7 @@ export function buildSundayIssueData({
           : `Duke held ${scores.opponent} to ${secondHalfPointsAllowed} point${secondHalfPointsAllowed === 1 ? '' : 's'} after halftime.`,
       },
       { value: turnoverNumber?.value || '—', label: 'TURNOVER MARGIN', detail: turnoverNumber?.detail || 'Awaiting a verified team-stat feed.' },
-      { value: plays.length || '—', label: 'RECORDED PLAYS', detail: 'CFBData play-by-play records.' },
+      teamNumber || { value: '—', label: 'TEAM STAT', detail: 'Awaiting a verified team-stat feed.' },
     ],
     leaders: getLeaders(detailsPayload, dukeName),
     scorigami_status: scoreFacts.isNew ? 'NEW SCORE!' : 'FAMILIAR TERRITORY.',

@@ -10,9 +10,15 @@ test('builds Sunday content from verified game and play facts', () => {
     sourcePayload: { id: 401858217, homeTeam: 'Illinois', awayTeam: 'Duke' },
     detailsPayload: {
       teamStats: [{ teams: [
-        { team: 'Illinois', stats: [{ category: 'turnovers', stat: '1' }] },
+        { team: 'Illinois', stats: [
+          { category: 'turnovers', stat: '1' },
+          { category: 'fourthDownEff', stat: '1-3' },
+          { category: 'totalYards', stat: '382' },
+        ] },
         { team: 'Duke', stats: [
           { category: 'turnovers', stat: '0' },
+          { category: 'fourthDownEff', stat: '2-2' },
+          { category: 'totalYards', stat: '376' },
           { category: 'rushingYards', stat: '170' },
         ] },
       ] }],
@@ -32,9 +38,9 @@ test('builds Sunday content from verified game and play facts', () => {
         ],
       }] }],
       plays: [
-        { playNumber: 1, period: 1, offense: 'Duke', defense: 'Illinois', offenseScore: 7, defenseScore: 0, scoring: true, clock: { minutes: 10, seconds: 0 }, playText: 'Eget pass complete to Sheppard for 13 yards, TOUCHDOWN' },
-        { playNumber: 2, period: 4, offense: 'Duke', defense: 'Illinois', offenseScore: 10, defenseScore: 3, scoring: true, clock: { minutes: 2, seconds: 0 }, playText: 'Pelino 39 Yd Field Goal' },
-        { playNumber: 3, period: 3, offense: 'Illinois', defense: 'Duke', offenseScore: 3, defenseScore: 7, scoring: true, clock: { minutes: 5, seconds: 0 }, kicker: 'Olano', playText: 'field goal attempt from 47 yards GOOD' },
+        { playNumber: 1, period: 1, offense: 'Duke', defense: 'Illinois', offenseScore: 7, defenseScore: 0, scoring: true, clock: { minutes: 10, seconds: 0 }, playText: '(08:34) Shotgun #2 W.Eget pass complete short right to #20 N.Sheppard caught at ILL05, for 7 yards to the ILL00 TOUCHDOWN' },
+        { playNumber: 2, period: 4, offense: 'Duke', defense: 'Illinois', offenseScore: 10, defenseScore: 3, scoring: true, clock: { minutes: 2, seconds: 0 }, playText: '(13:53) #39 C.Salas field goal attempt from 39 yards GOOD' },
+        { playNumber: 3, period: 3, offense: 'Illinois', defense: 'Duke', offenseScore: 3, defenseScore: 7, scoring: true, clock: { minutes: 5, seconds: 0 }, playText: '(05:08) #37 E.Moczulski field goal attempt from 47 yards GOOD' },
       ],
     },
     facts: { scorigami: { isNew: false, scorePair: '27-31', occurrenceCount: 2 } },
@@ -48,11 +54,12 @@ test('builds Sunday content from verified game and play facts', () => {
   expect(data.quarters[1].q3).toBe(3);
   expect(data.quarters[1].q4).toBe(0);
   expect(data.scoring_plays).toHaveLength(3);
-  expect(data.scoring_plays[0]).toMatchObject({ description: 'Eget to Sheppard, 13-yard touchdown' });
-  expect(data.scoring_plays[1]).toMatchObject({ team: 'ILL', period: '05:00', description: 'Olano, 47-yard field goal' });
-  expect(data.scoring_plays[2]).toMatchObject({ description: 'Pelino, 39-yard field goal' });
+  expect(data.scoring_plays[0]).toMatchObject({ description: 'Eget to Sheppard, 7-yard touchdown' });
+  expect(data.scoring_plays[1]).toMatchObject({ team: 'ILL', period: '05:00', description: 'Moczulski, 47-yard field goal' });
+  expect(data.scoring_plays[2]).toMatchObject({ description: 'Salas, 39-yard field goal' });
   expect(data.numbers[0]).toEqual({ value: 3, label: 'SECOND-HALF POINTS ALLOWED', detail: 'Duke held Illinois to 3 points after halftime.' });
-  expect(data.numbers[1]).toEqual({ value: '+1', label: 'TURNOVER MARGIN', detail: 'Duke 0, Illinois 1.' });
+  expect(data.numbers[1]).toEqual({ value: '+1', label: 'TURNOVER MARGIN', detail: 'Turnovers: Duke 0, Illinois 1.' });
+  expect(data.numbers[2]).toEqual({ value: '2-2', label: 'FOURTH-DOWN CONVERSIONS', detail: 'Duke converted 2 of 2 fourth downs; Illinois converted 1 of 3.' });
   expect(data.leaders.passing[0]).toEqual({ name: 'Duke QB', line: '20/30, 250 YDS, 2 TD, 1 INT' });
   expect(data.scorigami_status).toBe('FAMILIAR TERRITORY.');
   expect(data.source_url).toBe('https://www.winsipedia.com/duke/schedule/2026');
