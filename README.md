@@ -37,6 +37,8 @@ GitHub Actions also provides a manual **Canonical Data Ingestion** workflow. Run
 
 That workflow also recalculates canonical Scorigami facts and persists tiered editorial directives in `game_facts` and `editorial_directives`.
 
+For email testing, add `RESEND_API_KEY` and `NEWSLETTER_TEST_TO` as GitHub Actions secrets, then run the manual **Newsletter Test** workflow. It uses Resend's `onboarding@resend.dev` test sender and does not send to the subscriber table.
+
 ## GitHub Actions
 
 The scheduled workflow requires these repository secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CFB_DATA_KEY`, `OPENAI_API_KEY`, `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, and `TWITTER_ACCESS_SECRET`. The Supabase service-role and OpenAI keys are server-only and must never be exposed in a public site or client application.
