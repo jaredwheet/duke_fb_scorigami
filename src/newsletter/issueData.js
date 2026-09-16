@@ -262,6 +262,36 @@ function getTotalOffenseNumber(detailsPayload, dukeName, opponent) {
   };
 }
 
+function getTurningPoint(plays, dukeName) {
+  const dukePlays = (plays || []).filter((play) => play.offense === dukeName);
+  const fakePunt = dukePlays.find((play) => /fake punt|punt fake|fake field goal/i.test(play.playText || ''));
+  if (fakePunt) {
+    return {
+      type: 'fake_punt',
+      period: fakePunt.period,
+      time: `${String(fakePunt.clock?.minutes ?? 0).padStart(2, '0')}:${String(fakePunt.clock?.seconds ?? 0).padStart(2, '0')}`,
+      playText: fakePunt.playText,
+      factsUsed: ['game.scoring_plays'],
+    };
+  }
+
+  const explosivePlay = dukePlays
+    .filter((play) => Number(play.yardsGained) >= 20)
+    .sort((left, right) => Number(right.yardsGained) - Number(left.yardsGained))[0];
+  if (explosivePlay) {
+    return {
+      type: 'explosive_play',
+      yards: Number(explosivePlay.yardsGained),
+      period: explosivePlay.period,
+      time: `${String(explosivePlay.clock?.minutes ?? 0).padStart(2, '0')}:${String(explosivePlay.clock?.seconds ?? 0).padStart(2, '0')}`,
+      playText: explosivePlay.playText,
+      factsUsed: ['game.scoring_plays'],
+    };
+  }
+
+  return null;
+}
+
 function getSecondHalfPointsAllowed(quarterRows) {
   const opponentRow = quarterRows[1];
   const thirdQuarter = numericStat(opponentRow?.q3);
@@ -388,6 +418,7 @@ export function buildSundayIssueData({
   const turnoverNumber = getTurnoverNumber(detailsPayload, dukeName, scores.opponent);
   const teamNumber = getFourthDownNumber(detailsPayload, dukeName, scores.opponent)
     || getTotalOffenseNumber(detailsPayload, dukeName, scores.opponent);
+  const turningPoint = getTurningPoint(plays, dukeName);
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
   const nextDetails = formatNextDetails(nextGame, nextSchedule);
   const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
@@ -397,6 +428,7 @@ export function buildSundayIssueData({
     preview_text: `Duke ${scores.dukeScore}-${scores.opponentScore} vs ${scores.opponent}.`,
     current_opponent: scores.opponent,
     current_score: `${scores.dukeScore}-${scores.opponentScore}`,
+    turning_point: turningPoint,
     issue_date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
     issue_number: String(game.season),
     ...buildLeadCopy({

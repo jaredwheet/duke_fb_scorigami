@@ -3,6 +3,7 @@ import { runAccAgent } from './agents/accAgent.js';
 import { runHistoryAgent } from './agents/historyAgent.js';
 import { runRecapAgent } from './agents/recapAgent.js';
 import { runScorigamiAgent } from './agents/scorigamiAgent.js';
+import { runMomentAgent } from './agents/momentAgent.js';
 import { validateEditorialPackage } from './validateEditorial.js';
 
 function applyEditorial(issueData, editorial) {
@@ -10,6 +11,7 @@ function applyEditorial(issueData, editorial) {
     ? {
       ...issueData.guide_context,
       editorialHistory: editorial.history.context || issueData.guide_context.opponentHistory?.statement || '',
+      editorialMoment: editorial.moment.blurb || '',
     }
     : issueData.guide_context;
   const accContext = issueData.acc_context
@@ -31,13 +33,14 @@ export async function runEditorialOrchestrator(issueData, options = {}) {
   const modelAvailable = options.apiKey !== undefined
     ? Boolean(options.apiKey)
     : Boolean(options.client || process.env.OPENAI_API_KEY);
-  const [recap, scorigami, history, acc] = await Promise.all([
+  const [recap, scorigami, history, acc, moment] = await Promise.all([
     runRecapAgent(packet, options),
     runScorigamiAgent(packet, options),
     runHistoryAgent(packet, options),
     runAccAgent(packet, options),
+    runMomentAgent(packet, options),
   ]);
-  const editorial = { recap, scorigami, history, acc };
+  const editorial = { recap, scorigami, history, acc, moment };
   let validation = validateEditorialPackage({ packet, editorial });
   if (!validation.approved) {
     const fallbackEditorial = {
@@ -59,6 +62,7 @@ export async function runEditorialOrchestrator(issueData, options = {}) {
         warnings: validation.issues,
       },
       acc: { blurb: '', factsUsed: ['acc'], warnings: validation.issues },
+      moment: { blurb: '', factsUsed: [], warnings: validation.issues },
     };
     validation = validateEditorialPackage({ packet, editorial: fallbackEditorial });
     return { issueData: applyEditorial(issueData, fallbackEditorial), editorial: fallbackEditorial, validation, mode: 'deterministic-fallback' };

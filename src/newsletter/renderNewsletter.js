@@ -131,6 +131,9 @@ function buildGuideSections(context = null) {
   }
 
   const facts = [
+    context.editorialMoment
+      ? { label: 'THE MOMENT', detail: context.editorialMoment }
+      : null,
     context.comeback?.comeback
       ? { label: 'COMEBACK', detail: `Duke trailed by ${context.comeback.largestDeficit} points${formatQuarter(context.comeback.trailingAt) ? ` in the ${formatQuarter(context.comeback.trailingAt).quarter} quarter` : ''} before rallying.` }
       : null,

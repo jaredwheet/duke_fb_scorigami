@@ -32,3 +32,14 @@ export const accSchema = {
   },
   required: ['blurb', 'factsUsed', 'warnings'],
 };
+
+export const momentSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    blurb: { type: 'string' },
+    factsUsed: { type: 'array', items: { type: 'string' } },
+    warnings: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['blurb', 'factsUsed', 'warnings'],
+};

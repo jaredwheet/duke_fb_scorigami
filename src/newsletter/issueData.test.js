@@ -91,6 +91,32 @@ test('keeps the rusher name in a live CFBData rushing touchdown description', ()
   expect(data.scoring_plays[0].description).toBe('Sheppard, 2-yard touchdown run');
 });
 
+test('captures a verified fake-punt turning point for editorial agents', () => {
+  const data = buildSundayIssueData({
+    game: { season: 2026 },
+    participants: [
+      { team: { slug: 'duke', name: 'Duke' }, score: 31 },
+      { team: { slug: 'illinois', name: 'Illinois' }, score: 27 },
+    ],
+    detailsPayload: {
+      plays: [{
+        playNumber: 4,
+        period: 3,
+        offense: 'Duke',
+        defense: 'Illinois',
+        offenseScore: 21,
+        defenseScore: 24,
+        yardsGained: 18,
+        clock: { minutes: 8, seconds: 12 },
+        playText: 'Duke fake punt pass complete to N.Sheppard for 18 yards',
+      }],
+    },
+    facts: {},
+  });
+
+  expect(data.turning_point).toMatchObject({ type: 'fake_punt', factsUsed: ['game.scoring_plays'] });
+});
+
 test('adds prior Scorigami games and next-game network context', () => {
   const data = buildSundayIssueData({
     game: { season: 2026 },

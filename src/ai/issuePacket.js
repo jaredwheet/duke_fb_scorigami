@@ -27,6 +27,7 @@ export function buildIssuePacket(issueData = {}) {
       scorigamiContext: issueData.scorigami_context || '',
       guideContext: clone(issueData.guide_context),
       accContext: clone(issueData.acc_context),
+      turningPoint: clone(issueData.turning_point),
     },
     facts: {
       score: {
@@ -44,6 +45,7 @@ export function buildIssuePacket(issueData = {}) {
       },
       guide: clone(issueData.guide_context || {}),
       acc: clone(issueData.acc_context || {}),
+      turningPoint: clone(issueData.turning_point),
     },
     allowedFactRefs: [
       'game.score',

@@ -34,5 +34,7 @@ export function validateEditorialPackage({ packet, editorial }) {
   validateFactsUsed(editorial.history?.factsUsed, 'history.factsUsed', allowed, issues);
   validateText(editorial.acc?.blurb, 'acc.blurb', 300, issues, allowedNumbers);
   validateFactsUsed(editorial.acc?.factsUsed, 'acc.factsUsed', allowed, issues);
+  validateText(editorial.moment?.blurb, 'moment.blurb', 300, issues, allowedNumbers);
+  validateFactsUsed(editorial.moment?.factsUsed, 'moment.factsUsed', allowed, issues);
   return { approved: issues.length === 0, issues };
 }
