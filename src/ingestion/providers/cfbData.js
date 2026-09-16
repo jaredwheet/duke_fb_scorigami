@@ -40,10 +40,13 @@ export function buildGameDetailsParams(masterGame) {
   const externalGameId = masterGame.sourceRecords[0]?.externalGameId;
   if (!externalGameId) throw new Error('CFBData game details require an external game id');
 
-  return new URLSearchParams({
+  const params = new URLSearchParams({
     year: String(masterGame.season),
     id: String(externalGameId),
+    team: 'Duke',
   });
+  if (masterGame.week != null) params.set('week', String(masterGame.week));
+  return params;
 }
 
 export async function fetchCfbDataGameDetails(masterGame, {
