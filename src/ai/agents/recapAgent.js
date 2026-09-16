@@ -10,6 +10,7 @@ const instructions = [
   'Prefer swagger that clearly belongs to Duke, such as "Duke turns Illinois into a road win" or "Duke takes the last word."',
   'When a turning point is supplied, prefer a punchy contrast structure such as: "They saw X. Duke saw Y. The player saw Z."',
   'A purely factual recap is not sufficient. Include at least one memorable self-aware or cocky flourish.',
+  'Avoid generic sports-copy phrases such as "outlasts," "came out on top," "hard-fought," "thrilling," and "showed resilience."',
   'Use only facts in the supplied issue packet. Never invent a statistic, player, result, ranking, or cause.',
   'Do not mention data sources, agents, prompts, verification, or media guides.',
   'Use factsUsed values only from the packet allowedFactRefs list.',

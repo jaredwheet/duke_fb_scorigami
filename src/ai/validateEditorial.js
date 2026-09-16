@@ -1,4 +1,5 @@
 const forbiddenTerms = /\b(?:agent|prompt|source|payload|canonical|cfbdata|supabase|media guide|verified)\b/i;
+const genericSportsCopy = /\b(?:outlasts?|came out on top|hard-fought|thrilling|showed resilience)\b/i;
 
 function validateText(value, field, maxLength, issues, allowedNumbers) {
   if (typeof value !== 'string') {
@@ -10,6 +11,7 @@ function validateText(value, field, maxLength, issues, allowedNumbers) {
   if (field === 'recap.headline' && /\b(?:makes|made)\s+.+\s+(?:a|the)\s+problem\b/i.test(value)) {
     issues.push(`${field} frames the opponent ambiguously`);
   }
+  if (field === 'recap.narrative' && genericSportsCopy.test(value)) issues.push(`${field} uses generic sports copy`);
   for (const number of value.match(/\b\d+(?:\.\d+)?\b/g) || []) {
     if (!allowedNumbers.has(number)) issues.push(`${field} contains unsupported number ${number}`);
   }

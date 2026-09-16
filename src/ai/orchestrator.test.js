@@ -73,5 +73,24 @@ test('uses a Duke-positive headline in the deterministic fallback', async () => 
     acc_context: {},
   }, { apiKey: null });
 
-  expect(result.issueData.headline).toBe('DUKE TURNS ILLINOIS INTO A ROAD WIN');
+  expect(result.issueData.headline).toBe('DUKE TAKES THE LAST WORD');
+});
+
+test('human fallback uses the turning point instead of generic recap copy', async () => {
+  const result = await runEditorialOrchestrator({
+    headline: 'DUKE OUTLASTS ILLINOIS',
+    subheadline: 'Duke won 31-27.',
+    narrative: 'Walker Eget threw for 206 yards.',
+    current_opponent: 'Illinois',
+    current_score: '31-27',
+    quarters: [{ final: 31 }, { final: 27 }],
+    turning_point: { type: 'touchdown', description: 'Walker Eget found Nate Sheppard for a second-half touchdown.' },
+    numbers: [],
+    leaders: {},
+    guide_context: {},
+    acc_context: {},
+  }, { apiKey: null });
+
+  expect(result.issueData.headline).toBe('DUKE TAKES THE LAST WORD');
+  expect(result.issueData.narrative).toContain('Walker Eget found Nate Sheppard');
 });

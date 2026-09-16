@@ -1,3 +1,5 @@
+import { buildHumanRecap } from './humanEditorial.js';
+
 function extractPlayerFromPlay(playText) {
   return String(playText || '').match(/#\d+\s+[A-Za-z]\.([A-Za-z][A-Za-z'-]*)/)?.[1] || null;
 }
@@ -6,14 +8,11 @@ export function buildDeterministicEditorialFallback(issueData = {}) {
   const opponent = issueData.current_opponent || 'the opponent';
   const dukeScore = issueData.quarters?.[0]?.final;
   const opponentScore = issueData.quarters?.[1]?.final;
-  const won = dukeScore != null && opponentScore != null && dukeScore > opponentScore;
   const turningPoint = issueData.turning_point;
   const fourthDown = issueData.numbers?.find((number) => number.label === 'FOURTH-DOWN CONVERSIONS');
   const comeback = issueData.guide_context?.comeback;
 
-  let flourish = won
-    ? 'Duke made the scoreboard do the talking and added unnecessary drama.'
-    : `The scoreboard was not in a forgiving mood.`;
+  let flourish = 'Duke made the scoreboard do the talking and added unnecessary drama.';
   if (turningPoint?.type === 'fake_punt') {
     const player = extractPlayerFromPlay(turningPoint.playText);
     flourish = player
@@ -31,10 +30,7 @@ export function buildDeterministicEditorialFallback(issueData = {}) {
 
   return {
     recap: {
-      headline: won ? `DUKE TURNS ${opponent.toUpperCase()} INTO A ROAD WIN` : issueData.headline || `DUKE FALLS TO ${opponent.toUpperCase()}`,
-      subheadline: issueData.subheadline || '',
-      narrative: [issueData.narrative, flourish].filter(Boolean).join(' '),
-      factsUsed: ['game.score', 'game.numbers', 'game.leaders', 'moment'],
+      ...buildHumanRecap({ ...issueData, turning_point: turningPoint, editorial_flourish: flourish }),
       warnings: ['deterministic editorial fallback'],
     },
     scorigami: {
