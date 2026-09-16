@@ -94,3 +94,34 @@ test('human fallback uses the turning point instead of generic recap copy', asyn
   expect(result.issueData.headline).toBe('DUKE TAKES THE LAST WORD');
   expect(result.issueData.narrative).toContain('Walker Eget found Nate Sheppard');
 });
+
+test('preserves deterministic key-play context when an agent returns a generic moment', async () => {
+  const result = await runEditorialOrchestrator({
+    headline: 'DUKE TAKES THE LAST WORD',
+    subheadline: 'Duke won 31-27.',
+    narrative: 'Duke rallied late.',
+    current_opponent: 'Illinois',
+    current_score: '31-27',
+    quarters: [{ final: 31 }, { final: 27 }],
+    turning_point: { description: 'Walker Eget found Nate Sheppard for 3 yards and a touchdown with 10:47 left in the third quarter (Duke 28, Illinois 24).' },
+    scorigami_context: '',
+    guide_context: {},
+    acc_context: {},
+  }, {
+    client: {
+      chat: { completions: { create: async ({ response_format }) => ({ choices: [{ message: { content: JSON.stringify(response_format.json_schema.name === 'duke_recap_editor'
+        ? { headline: 'DUKE TAKES THE LAST WORD', subheadline: 'Duke won 31-27.', narrative: 'Duke made a major play.', factsUsed: ['game.score'], warnings: [] }
+        : response_format.json_schema.name === 'duke_turning_point_editor'
+          ? { blurb: 'Duke made a major play.', factsUsed: ['moment'], warnings: [] }
+          : response_format.json_schema.name === 'duke_scorigami_editor'
+            ? { context: '', factsUsed: ['scorigami'], warnings: [] }
+            : response_format.json_schema.name === 'duke_history_editor'
+              ? { context: '', factsUsed: ['history'], warnings: [] }
+              : { blurb: '', factsUsed: ['acc'], warnings: [] }) } }] }) } },
+    },
+    apiKey: 'test-key',
+    discoverSources: async () => [],
+  });
+
+  expect(result.issueData.guide_context.editorialMoment).toContain('Walker Eget found Nate Sheppard');
+});

@@ -15,7 +15,7 @@ function applyEditorial(issueData, editorial) {
     ? {
       ...issueData.guide_context,
       editorialHistory: editorial.history.context || issueData.guide_context.opponentHistory?.statement || '',
-      editorialMoment: editorial.moment.blurb || '',
+      editorialMoment: issueData.turning_point?.description || editorial.moment.blurb || '',
     }
     : issueData.guide_context;
   const accContext = issueData.acc_context
