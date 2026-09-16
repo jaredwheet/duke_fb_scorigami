@@ -68,11 +68,11 @@ function buildAccRows(rows = []) {
   `).join('');
 }
 
-function formatGameMoment(value) {
+function formatQuarter(value) {
   const match = String(value || '').match(/^Q([1-4])\s+(\d{2}:\d{2})$/);
   if (!match) return null;
   const quarter = ['first', 'second', 'third', 'fourth'][Number(match[1]) - 1];
-  return `with ${match[2]} left in the ${quarter} quarter`;
+  return { quarter, time: match[2] };
 }
 
 function buildGuideSections(context = null) {
@@ -93,12 +93,12 @@ function buildGuideSections(context = null) {
 
   const facts = [
     context.comeback?.comeback
-      ? { label: 'COMEBACK', detail: `Duke erased a ${context.comeback.largestDeficit}-point deficit${formatGameMoment(context.comeback.trailingAt) ? ` ${formatGameMoment(context.comeback.trailingAt)}` : ''}.` }
+      ? { label: 'COMEBACK', detail: `Duke trailed by ${context.comeback.largestDeficit} points${formatQuarter(context.comeback.trailingAt) ? ` in the ${formatQuarter(context.comeback.trailingAt).quarter} quarter` : ''} before rallying.` }
       : null,
     context.lateGame?.lateGameWin
       ? { label: 'LATE GAME', detail: Number(context.lateGame.period) >= 5
         ? 'Duke took the lead in overtime.'
-        : `Duke took the lead with ${context.lateGame.time} left in the ${['first', 'second', 'third', 'fourth'][Number(context.lateGame.period) - 1]} quarter.` }
+        : `Duke took the lead with ${context.lateGame.time} to play in the ${['first', 'second', 'third', 'fourth'][Number(context.lateGame.period) - 1]} quarter.` }
       : null,
     context.opponentHistory
       ? { label: 'SERIES', detail: context.opponentHistory.statement }

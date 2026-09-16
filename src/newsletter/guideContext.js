@@ -56,7 +56,7 @@ export function buildOpponentHistory({ guide, opponent, season, dukeScore = null
     record,
     throughSeason: display.throughSeason,
     guideThroughSeason: series.throughSeason,
-    statement,
+    statement: series.historicalNote ? `${statement} ${series.historicalNote}` : statement,
     citation: { edition: guide.edition, ...guide.citations[series.citationId] },
   };
 }

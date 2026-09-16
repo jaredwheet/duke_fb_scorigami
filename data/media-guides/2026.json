@@ -143,18 +143,18 @@
     }
   ],
   "opponentSeries": [
-    { "id": "series-tulane", "opponent": "Tulane", "opponentSlug": "tulane", "dukeWins": 3, "dukeLosses": 3, "ties": 0, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-illinois", "opponent": "Illinois", "opponentSlug": "illinois", "dukeWins": 1, "dukeLosses": 2, "ties": 0, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-stanford", "opponent": "Stanford", "opponentSlug": "stanford", "dukeWins": 1, "dukeLosses": 3, "ties": 0, "throughSeason": 2024, "citationId": "series-ledgers" },
-    { "id": "series-william-and-mary", "opponent": "William & Mary", "opponentSlug": "william-and-mary", "dukeWins": 1, "dukeLosses": 6, "ties": 0, "throughSeason": 1955, "citationId": "series-ledgers" },
-    { "id": "series-georgia-tech", "opponent": "Georgia Tech", "opponentSlug": "georgia-tech", "dukeWins": 35, "dukeLosses": 56, "ties": 1, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-north-carolina", "opponent": "North Carolina", "opponentSlug": "north-carolina", "dukeWins": 42, "dukeLosses": 65, "ties": 4, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-virginia", "opponent": "Virginia", "opponentSlug": "virginia", "dukeWins": 35, "dukeLosses": 42, "ties": 0, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-boston-college", "opponent": "Boston College", "opponentSlug": "boston-college", "dukeWins": 4, "dukeLosses": 5, "ties": 0, "throughSeason": 2022, "citationId": "series-ledgers" },
-    { "id": "series-nc-state", "opponent": "N.C. State", "opponentSlug": "nc-state", "dukeWins": 44, "dukeLosses": 37, "ties": 5, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-miami", "opponent": "Miami", "opponentSlug": "miami", "dukeWins": 5, "dukeLosses": 16, "ties": 0, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-clemson", "opponent": "Clemson", "opponentSlug": "clemson", "dukeWins": 18, "dukeLosses": 37, "ties": 1, "throughSeason": 2025, "citationId": "series-ledgers" },
-    { "id": "series-wake-forest", "opponent": "Wake Forest", "opponentSlug": "wake-forest", "dukeWins": 62, "dukeLosses": 41, "ties": 2, "throughSeason": 2025, "citationId": "series-ledgers" }
+    { "id": "series-tulane", "opponent": "Tulane", "opponentSlug": "tulane", "dukeWins": 3, "dukeLosses": 3, "ties": 0, "throughSeason": 2025, "historicalNote": "Duke's last win in the series came in 2015, a 37-7 road victory.", "citationId": "series-ledgers" },
+    { "id": "series-illinois", "opponent": "Illinois", "opponentSlug": "illinois", "dukeWins": 1, "dukeLosses": 2, "ties": 0, "throughSeason": 2025, "historicalNote": "The teams first met in 1958, when Duke won 15-13; Illinois won the next two meetings in 1965 and 2025.", "citationId": "series-ledgers" },
+    { "id": "series-stanford", "opponent": "Stanford", "opponentSlug": "stanford", "dukeWins": 1, "dukeLosses": 3, "ties": 0, "throughSeason": 2024, "historicalNote": "Duke's lone win in the series came in 1971, a 9-3 road victory.", "citationId": "series-ledgers" },
+    { "id": "series-william-and-mary", "opponent": "William & Mary", "opponentSlug": "william-and-mary", "dukeWins": 1, "dukeLosses": 6, "ties": 0, "throughSeason": 1955, "historicalNote": "The most recent meeting was Duke's 47-7 home win in 1955.", "citationId": "series-ledgers" },
+    { "id": "series-georgia-tech", "opponent": "Georgia Tech", "opponentSlug": "georgia-tech", "dukeWins": 35, "dukeLosses": 56, "ties": 1, "throughSeason": 2025, "historicalNote": "Duke's 1938 win over Georgia Tech came during its 9-1 Rose Bowl season.", "citationId": "series-ledgers" },
+    { "id": "series-north-carolina", "opponent": "North Carolina", "opponentSlug": "north-carolina", "dukeWins": 42, "dukeLosses": 65, "ties": 4, "throughSeason": 2025, "historicalNote": "Duke and North Carolina first met in 1888, the first season listed in Duke's football record.", "citationId": "series-ledgers" },
+    { "id": "series-virginia", "opponent": "Virginia", "opponentSlug": "virginia", "dukeWins": 35, "dukeLosses": 42, "ties": 0, "throughSeason": 2025, "historicalNote": "The series began in 1890, when Virginia won 10-4 at a neutral site.", "citationId": "series-ledgers" },
+    { "id": "series-boston-college", "opponent": "Boston College", "opponentSlug": "boston-college", "dukeWins": 4, "dukeLosses": 5, "ties": 0, "throughSeason": 2022, "historicalNote": "Duke's most recent listed win was a 38-31 road victory in 2022.", "citationId": "series-ledgers" },
+    { "id": "series-nc-state", "opponent": "N.C. State", "opponentSlug": "nc-state", "dukeWins": 44, "dukeLosses": 37, "ties": 5, "throughSeason": 2025, "historicalNote": "Duke has won three straight against N.C. State through 2025.", "citationId": "series-ledgers" },
+    { "id": "series-miami", "opponent": "Miami", "opponentSlug": "miami", "dukeWins": 5, "dukeLosses": 16, "ties": 0, "throughSeason": 2025, "historicalNote": "Duke's 48-30 win over Miami in 2013 remains one of the series' highest-scoring Duke victories.", "citationId": "series-ledgers" },
+    { "id": "series-clemson", "opponent": "Clemson", "opponentSlug": "clemson", "dukeWins": 18, "dukeLosses": 37, "ties": 1, "throughSeason": 2025, "historicalNote": "Duke's 46-45 win at Clemson in 2025 was its first victory in Death Valley since 1980.", "citationId": "series-ledgers" },
+    { "id": "series-wake-forest", "opponent": "Wake Forest", "opponentSlug": "wake-forest", "dukeWins": 62, "dukeLosses": 41, "ties": 2, "throughSeason": 2025, "historicalNote": "Duke's 2025 win over Wake Forest helped secure a second straight in-state state title.", "citationId": "series-ledgers" }
   ],
   "programRecords": [
     {
