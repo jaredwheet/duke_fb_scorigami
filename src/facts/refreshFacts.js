@@ -1,16 +1,26 @@
-import supabase from '../supabaseClient.js';
 import { detectEvents, EVENT_LOGIC_VERSION } from '../eventDetector.js';
 import { calculateDukeScoreFacts } from './scoreFacts.js';
 
+export async function fetchAllRows(client, table, columns, { pageSize = 500 } = {}) {
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await client
+      .from(table)
+      .select(columns)
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
 async function loadCanonicalGames(client) {
-  const [{ data: games, error: gamesError }, { data: participants, error: participantsError }, { data: teams, error: teamsError }] = await Promise.all([
-    client.from('games').select('id, canonical_key, season, start_at, status'),
-    client.from('game_participants').select('game_id, team_id, participant_role, score'),
-    client.from('teams').select('id, slug, name'),
+  const [games, participants, teams] = await Promise.all([
+    fetchAllRows(client, 'games', 'id, canonical_key, season, start_at, status'),
+    fetchAllRows(client, 'game_participants', 'id, game_id, team_id, participant_role, score'),
+    fetchAllRows(client, 'teams', 'id, slug, name'),
   ]);
-  if (gamesError) throw gamesError;
-  if (participantsError) throw participantsError;
-  if (teamsError) throw teamsError;
 
   const teamsById = new Map((teams || []).map((team) => [team.id, team]));
   const participantsByGame = new Map();
@@ -30,12 +40,13 @@ async function loadCanonicalGames(client) {
   }));
 }
 
-export async function refreshDukeFacts(client = supabase) {
-  const games = await loadCanonicalGames(client);
+export async function refreshDukeFacts(client = null) {
+  const db = client || (await import('../supabaseClient.js')).default;
+  const games = await loadCanonicalGames(db);
   const calculatedFacts = calculateDukeScoreFacts(games);
 
   for (const result of calculatedFacts) {
-    const { error: factError } = await client
+    const { error: factError } = await db
       .from('game_facts')
       .upsert({
         game_id: result.gameId,
@@ -52,7 +63,7 @@ export async function refreshDukeFacts(client = supabase) {
     });
     for (const directive of detection.directives) {
       for (const issueType of directive.issueTypes) {
-        const { error: directiveError } = await client
+        const { error: directiveError } = await db
           .from('editorial_directives')
           .upsert({
             game_id: result.gameId,
