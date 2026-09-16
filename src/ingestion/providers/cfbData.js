@@ -6,7 +6,9 @@ async function fetchJson(url, apiKey) {
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
-    throw new Error(`CFBData request failed with status ${response.status}`);
+    const body = await response.text();
+    const detail = body ? `: ${body.slice(0, 300)}` : '';
+    throw new Error(`CFBData request failed with status ${response.status}${detail}`);
   }
   return response.json();
 }

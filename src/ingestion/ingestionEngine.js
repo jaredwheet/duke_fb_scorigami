@@ -125,13 +125,20 @@ export async function persistMasterGame(masterGame, client = null) {
 
   for (const enrichment of Object.values(masterGame.enrichments || {})) {
     if (!enrichment?.data) continue;
+    const payload = {
+      ...enrichment.data,
+      _meta: {
+        status: enrichment.status || 'ok',
+        errors: enrichment.errors || {},
+      },
+    };
     const { error } = await db
       .from('game_analytics')
       .upsert({
         game_id: game.id,
         provider: enrichment.provider,
         metric_set: enrichment.metricSet || 'enrichment',
-        payload: enrichment.data,
+        payload,
       }, { onConflict: 'game_id,provider,metric_set' });
     if (error) throw error;
   }
