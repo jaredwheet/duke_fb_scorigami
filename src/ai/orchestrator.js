@@ -6,6 +6,7 @@ import { runScorigamiAgent } from './agents/scorigamiAgent.js';
 import { runMomentAgent } from './agents/momentAgent.js';
 import { runMomentScoutAgent } from './agents/momentScoutAgent.js';
 import { discoverMomentSources } from './moments/sourceDiscovery.js';
+import { runWebMomentScout } from './moments/webMomentScout.js';
 import { validateEditorialPackage } from './validateEditorial.js';
 
 function applyEditorial(issueData, editorial) {
@@ -39,9 +40,15 @@ export async function runEditorialOrchestrator(issueData, options = {}) {
   if (modelAvailable) {
     try {
       const discoverSources = options.discoverSources || discoverMomentSources;
-      externalSources = await discoverSources({ issueData });
+      const webCandidates = (await runWebMomentScout({ issueData, apiKey: options.apiKey, client: options.client })).candidates || [];
+      const sourceLeads = webCandidates.flatMap((candidate) => (candidate.sourceUrls || []).map((url) => ({
+        type: 'web_search',
+        url,
+        excerpt: candidate.evidence,
+      })));
+      externalSources = [...await discoverSources({ issueData }), ...sourceLeads];
       const scoutPacket = buildIssuePacket(issueData, { externalSources });
-      discoveredMoments = (await runMomentScoutAgent(scoutPacket, options)).candidates || [];
+      discoveredMoments = [...webCandidates, ...((await runMomentScoutAgent(scoutPacket, options)).candidates || [])].slice(0, 3);
     } catch {
       externalSources = [];
       discoveredMoments = [];
