@@ -156,10 +156,6 @@ function getTurnoverNumber(detailsPayload, dukeName, opponent) {
   };
 }
 
-function numberWord(value) {
-  return value === 1 ? 'one' : String(value);
-}
-
 function buildLeadCopy({ dukeScore, opponentScore, opponent, dukeRole, turnoverNumber, summaryStats }) {
   const score = `${dukeScore}-${opponentScore}`;
   const won = dukeScore > opponentScore;
@@ -197,11 +193,9 @@ function buildLeadCopy({ dukeScore, opponentScore, opponent, dukeRole, turnoverN
 
   return {
     headline: won ? `DUKE OUTLASTS ${opponent.toUpperCase()}` : `DUKE FALLS SHORT AGAINST ${opponent.toUpperCase()}`,
-    subheadline: turnoverMargin > 0 && teamRushingYards != null
-      ? `The Blue Devils won the turnover battle ${turnoverScore} and ran for ${teamRushingYards} yards in a ${score} ${setting} win.`
-      : turnoverMargin > 0
-        ? `A ${numberWord(turnoverMargin)}-turnover edge helps the Blue Devils ${won ? 'outlast' : 'push'} ${opponent}, ${score}.`
-        : `The Blue Devils ${won ? 'outlast' : 'fall to'} ${opponent}, ${score}.`,
+    subheadline: teamRushingYards != null
+      ? `Duke ran for ${teamRushingYards} yards in a ${score} ${setting} ${won ? 'win' : 'loss'} over ${opponent}.`
+      : `The Blue Devils ${won ? 'outlast' : 'fall to'} ${opponent}, ${score}.`,
     narrative: summarySentences.join(' '),
   };
 }

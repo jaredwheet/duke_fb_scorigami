@@ -41,7 +41,7 @@ test('builds Sunday content from verified game and play facts', () => {
   });
 
   expect(data.headline).toBe('DUKE OUTLASTS ILLINOIS');
-  expect(data.subheadline).toBe('The Blue Devils won the turnover battle 1-0 and ran for 170 yards in a 31-27 road win.');
+  expect(data.subheadline).toBe('Duke ran for 170 yards in a 31-27 road win over Illinois.');
   expect(data.narrative).toBe('On the road, Duke QB threw for 250 yards and 2 touchdowns. Duke RB ran for 147 yards and a touchdown.');
   expect(data.quarters[0].final).toBe(31);
   expect(data.scoring_plays).toHaveLength(2);

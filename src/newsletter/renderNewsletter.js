@@ -16,22 +16,22 @@ function escapeHtml(value) {
 function buildQuarterRows(rows = []) {
   return rows.map((row) => `
     <tr style="border-bottom:1px solid #607080;">
-      <td style="padding:6px 4px;">${escapeHtml(row.team)}</td>
-      <td align="right" style="padding:6px 4px;">${escapeHtml(row.q1)}</td>
-      <td align="right" style="padding:6px 4px;">${escapeHtml(row.q2)}</td>
-      <td align="right" style="padding:6px 4px;">${escapeHtml(row.q3)}</td>
-      <td align="right" style="padding:6px 4px;">${escapeHtml(row.q4)}</td>
-      <td align="right" style="padding:6px 4px;font-weight:700;">${escapeHtml(row.final)}</td>
+      <td width="30%" style="padding:6px 4px;white-space:nowrap;">${escapeHtml(row.team)}</td>
+      <td width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">${escapeHtml(row.q1)}</td>
+      <td width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">${escapeHtml(row.q2)}</td>
+      <td width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">${escapeHtml(row.q3)}</td>
+      <td width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">${escapeHtml(row.q4)}</td>
+      <td width="14%" align="right" style="padding:6px 4px;font-weight:700;white-space:nowrap;">${escapeHtml(row.final)}</td>
     </tr>
   `).join('');
 }
 
 function buildScoringRows(rows = []) {
   return rows.map((row) => `
-    <tr>
-      <td style="padding:4px 4px;">${escapeHtml(row.team)}</td>
-      <td style="padding:4px 4px;">${escapeHtml(row.period)}</td>
-      <td style="padding:4px 4px;">${escapeHtml(row.description)}</td>
+    <tr style="border-bottom:1px solid #607080;">
+      <td width="16%" style="padding:4px 6px 4px 0;white-space:nowrap;vertical-align:top;">${escapeHtml(row.team)}</td>
+      <td width="24%" style="padding:4px 6px 4px 0;white-space:nowrap;vertical-align:top;">${escapeHtml(row.period)}</td>
+      <td width="60%" style="padding:4px 0;vertical-align:top;">${escapeHtml(row.description)}</td>
     </tr>
   `).join('');
 }

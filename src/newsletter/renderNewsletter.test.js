@@ -10,4 +10,6 @@ test('renders the Sunday MJML template into HTML', async () => {
   expect(html).toContain('31');
   expect(html).toContain('SCORIGAMI WATCH');
   expect(html).toContain('NEXT UP');
+  expect(html).toContain('white-space:nowrap');
+  expect(html).toContain('>TIME</th>');
 });

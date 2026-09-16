@@ -44,17 +44,24 @@
         <mj-text color="#e9e3d5" font-size="12px" letter-spacing="3px" font-weight="700">THE CLASSIC BOX SCORE</mj-text>
         <mj-table color="#f8f4ea" font-size="13px" line-height="1.5" padding-top="12px" css-class="stat">
           <tr style="border-bottom:1px solid #607080;">
-            <th align="left" style="padding:6px 4px;">TEAM</th>
-            <th align="right" style="padding:6px 4px;">Q1</th>
-            <th align="right" style="padding:6px 4px;">Q2</th>
-            <th align="right" style="padding:6px 4px;">Q3</th>
-            <th align="right" style="padding:6px 4px;">Q4</th>
-            <th align="right" style="padding:6px 4px;">FINAL</th>
+            <th width="30%" align="left" style="padding:6px 4px;white-space:nowrap;">TEAM</th>
+            <th width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">Q1</th>
+            <th width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">Q2</th>
+            <th width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">Q3</th>
+            <th width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">Q4</th>
+            <th width="14%" align="right" style="padding:6px 4px;white-space:nowrap;">FINAL</th>
           </tr>
           {{quarter_rows}}
         </mj-table>
         <mj-text color="#e9e3d5" font-size="11px" letter-spacing="2px" font-weight="700" padding-top="20px">SCORING SUMMARY</mj-text>
-        <mj-table color="#f8f4ea" font-size="12px" line-height="1.45" padding-top="8px" css-class="stat">{{scoring_rows}}</mj-table>
+        <mj-table color="#f8f4ea" font-size="12px" line-height="1.45" padding-top="8px" css-class="stat">
+          <tr style="border-bottom:1px solid #607080;">
+            <th width="16%" align="left" style="padding:4px 6px 4px 0;white-space:nowrap;">TEAM</th>
+            <th width="24%" align="left" style="padding:4px 6px 4px 0;white-space:nowrap;">TIME</th>
+            <th width="60%" align="left" style="padding:4px 0;">PLAY</th>
+          </tr>
+          {{scoring_rows}}
+        </mj-table>
       </mj-column>
     </mj-section>
 
