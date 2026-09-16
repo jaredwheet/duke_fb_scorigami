@@ -78,6 +78,8 @@ The first ingestion slice is available with `npm run ingest`. It normalizes the 
 
 Event detection is deterministic and returns tiered `headline_directive` data. AI is intended only to turn those verified facts into editorial language; it must not calculate statistics.
 
+The newsletter editorial path now supports a constrained multi-agent orchestrator. Recap, Scorigami, history, and ACC agents receive the same immutable fact packet and return structured editorial copy. A deterministic validator rejects unsupported numbers or internal/source language, while box scores, standings, results, and all numeric facts remain code-generated. Without `OPENAI_API_KEY`, the newsletter falls back to deterministic copy.
+
 ## Contributing
 
 Pull requests are welcome. Please open an issue first to discuss changes.

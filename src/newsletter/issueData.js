@@ -395,6 +395,8 @@ export function buildSundayIssueData({
   return {
     subject: `Devil in the Details: Duke ${scores.dukeScore}-${scores.opponentScore}`,
     preview_text: `Duke ${scores.dukeScore}-${scores.opponentScore} vs ${scores.opponent}.`,
+    current_opponent: scores.opponent,
+    current_score: `${scores.dukeScore}-${scores.opponentScore}`,
     issue_date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
     issue_number: String(game.season),
     ...buildLeadCopy({

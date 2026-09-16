@@ -72,6 +72,7 @@ function buildAccRows(rows = []) {
 
   const standings = rows?.standings || [];
   const results = rows?.results || [];
+  const editorialBlurb = rows?.editorialBlurb || '';
   const standingsRows = standings.map((row) => `
     <tr style="border-bottom:1px solid #b5ad9f;">
       <td style="padding:5px 4px;">${escapeHtml(row.rank ? `#${row.rank} ${row.team}` : row.team)}</td>
@@ -95,6 +96,7 @@ function buildAccRows(rows = []) {
       <th align="right" style="padding:4px;">OVERALL</th>
     </tr>
     ${standingsRows || empty}
+    ${editorialBlurb ? `<tr><td colspan="3" style="padding:10px 4px 2px;font-family:Georgia, 'Times New Roman', serif;font-size:13px;line-height:1.35;">${escapeHtml(editorialBlurb)}</td></tr>` : ''}
     <tr><th colspan="3" align="left" style="padding:18px 4px 4px;font-size:11px;letter-spacing:2px;">YESTERDAY'S RESULTS</th></tr>
     <tr style="border-bottom:1px solid #101820;">
       <th align="left" style="padding:4px;">WINNER</th>
@@ -137,12 +139,13 @@ function buildGuideSections(context = null) {
         ? 'Duke took the lead in overtime.'
         : `Duke took the lead with ${context.lateGame.time} to play in the ${['first', 'second', 'third', 'fourth'][Number(context.lateGame.period) - 1]} quarter.` }
       : null,
-    context.opponentHistory
-      ? { label: 'SERIES', detail: context.opponentHistory.statement }
-      : null,
-    context.historicalFact
-      ? { label: 'DUKE HISTORY', detail: context.historicalFact.statement }
-      : null,
+    context.editorialHistory
+      ? { label: 'DUKE HISTORY', detail: context.editorialHistory }
+      : context.opponentHistory
+        ? { label: 'SERIES', detail: context.opponentHistory.statement }
+        : context.historicalFact
+          ? { label: 'DUKE HISTORY', detail: context.historicalFact.statement }
+          : null,
   ].filter(Boolean);
 
   if (facts.length > 0) {

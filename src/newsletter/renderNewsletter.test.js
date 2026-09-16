@@ -40,6 +40,7 @@ test('renders ACC standings and final results', async () => {
     acc_context: {
       standings: [{ team: 'Duke', rank: 12, conferenceRecord: '1-0', overallRecord: '2-0' }],
       results: [{ winner: 'Clemson', loser: 'Boston College', score: '31-14' }],
+      editorialBlurb: 'Clemson moved into the ACC race with a strong result.',
     },
   });
 
@@ -51,4 +52,5 @@ test('renders ACC standings and final results', async () => {
   expect(html).toContain('>LOSER</th>');
   expect(html).toContain('31-14');
   expect(html).toContain('1-0');
+  expect(html).toContain('Clemson moved into the ACC race');
 });

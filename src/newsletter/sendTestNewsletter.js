@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { Resend } from 'resend';
+import { runEditorialOrchestrator } from '../ai/orchestrator.js';
 import { renderDevilInDetails } from './renderNewsletter.js';
 import { loadLatestSundayIssueData } from './loadSundayIssueData.js';
 
@@ -10,9 +11,12 @@ if (!apiKey) throw new Error('RESEND_API_KEY is required');
 if (!recipient) throw new Error('NEWSLETTER_TEST_TO is required');
 
 const resend = new Resend(apiKey);
-const issueData = process.env.NEWSLETTER_USE_LIVE_DATA === 'true'
+const deterministicIssueData = process.env.NEWSLETTER_USE_LIVE_DATA === 'true'
   ? await loadLatestSundayIssueData()
   : {};
+const issueData = deterministicIssueData.current_score
+  ? (await runEditorialOrchestrator(deterministicIssueData)).issueData
+  : deterministicIssueData;
 const html = await renderDevilInDetails(issueData);
 const { data, error } = await resend.emails.send({
   from: process.env.RESEND_FROM_EMAIL || 'Duke Football Scorigami <onboarding@resend.dev>',
