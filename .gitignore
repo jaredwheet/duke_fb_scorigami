@@ -1,3 +1,7 @@
 node_modules/
 .env
 duke_games.db
+.DS_Store
+card-preview.mjs
+card-previews/
+scorigami-card-preview.png

@@ -3,9 +3,11 @@ import { trimTweet } from './tweetUtils.js';
 import { getDukeGame, getDukeGames, getGameVenue, getNextScheduledDukeGame } from './gameApi.js';
 import { isScorigami, getLastScoreOccurrenceFromGames } from './scorigami.js';
 import { alreadyTweeted, markTweeted, insertGame } from './db.js';
-import { tweet } from './twitterClient.js';
+import { tweet, tweetWithMedia, uploadImage } from './twitterClient.js';
 import { DEFAULT_BACKFILL_DAYS, getDukeScoreDetails, getRecentCompletedDukeGames, getWinsipediaSeasonUrl } from './gameUtils.js';
 import { HASHTAGS } from './tweetConfig.js';
+import { createScorigamiCard } from './scorigamiCard.js';
+import { createWallaceWadeCard } from './wallaceWadeCard.js';
 
 const TEMPLATE_VERSION = 'v2';
 
@@ -196,11 +198,47 @@ async function processCompletedGame(game) {
     }
 
     console.log(message);
-    const tweetId = await tweet(trimTweet(message));
+    let tweetId;
+    let contentType = 'final';
+    if (scorigamiResult.isScorigami) {
+        let mediaId = null;
+        try {
+            const card = await createWallaceWadeCard({
+                dukeScore,
+                oppScore,
+                opponent,
+                startDate: game.startDate,
+            });
+            mediaId = await uploadImage(card);
+        } catch (error) {
+            console.warn('Wallace Wade card failed; using the deterministic fallback:', error.message);
+            try {
+                const fallbackCard = await createScorigamiCard({
+                    dukeScore,
+                    oppScore,
+                    opponent,
+                    startDate: game.startDate,
+                });
+                mediaId = await uploadImage(fallbackCard);
+            } catch (fallbackError) {
+                console.warn('Scorigami card upload failed; posting text-only:', fallbackError.message);
+            }
+        }
+
+        if (mediaId) {
+            tweetId = await tweetWithMedia(trimTweet(message), mediaId);
+            contentType = 'final_scorigami_card';
+        } else {
+            tweetId = await tweet(trimTweet(message));
+            contentType = 'final_scorigami';
+        }
+    } else {
+        tweetId = await tweet(trimTweet(message));
+    }
     await markTweeted(game.id, `${scoreKey}-final`, {
         tweetId,
         tweetUrl: getTweetUrl(tweetId),
-        contentType: scorigamiResult.isScorigami ? 'final_scorigami' : 'final',
+        contentType: scorigamiResult.isScorigami ? contentType : 'final',
         templateVersion: TEMPLATE_VERSION,
     });
 }

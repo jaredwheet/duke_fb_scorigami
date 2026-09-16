@@ -1,0 +1,60 @@
+<mjml>
+  <mj-head>
+    <mj-title>{{subject}}</mj-title>
+    <mj-preview>{{preview_text}}</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Courier New, Courier, monospace" color="#101820" />
+      <mj-text padding="0" />
+      <mj-section padding="0" />
+    </mj-attributes>
+    <mj-style inline="inline">
+      .rule { border-top: 3px solid #101820; }
+      .subrule { border-top: 1px solid #101820; }
+      .stat { font-variant-numeric: tabular-nums; }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#e9e3d5">
+    <mj-section background-color="#f8f4ea" padding="26px 24px 10px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">DUKE FOOTBALL DISPATCH</mj-text>
+        <mj-text font-size="34px" line-height="1.05" font-weight="800" padding-top="10px">DEVIL IN THE DETAILS</mj-text>
+        <mj-text font-size="12px" padding-top="10px">{{issue_date}} · EDITION {{issue_number}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="14px 24px">
+      <mj-column>
+        <mj-divider border-color="#101820" border-width="3px" padding="0" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="8px 24px 24px">
+      <mj-column>
+        <mj-text font-size="25px" line-height="1.15" font-weight="800">{{headline}}</mj-text>
+        <mj-text font-size="15px" line-height="1.5" padding-top="12px">{{dek}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#101820" padding="18px 24px">
+      <mj-column>
+        <mj-text color="#f8f4ea" font-size="12px" letter-spacing="2px" font-weight="700">THE BOX SCORE</mj-text>
+        <mj-text color="#f8f4ea" font-size="16px" line-height="1.6" padding-top="10px" css-class="stat">{{box_score_rows}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="24px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="2px" font-weight="700">THE RECEIPTS</mj-text>
+        <mj-text font-size="15px" line-height="1.55" padding-top="10px">{{analysis}}</mj-text>
+        <mj-button background-color="#003087" color="#ffffff" font-family="Courier New, Courier, monospace" font-size="13px" border-radius="0" padding-top="18px" href="{{source_url}}">VIEW THE FULL SCORE HISTORY</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="10px 24px 30px">
+      <mj-column>
+        <mj-divider border-color="#101820" border-width="1px" padding="0" />
+        <mj-text font-size="11px" line-height="1.5" padding-top="12px">{{footer_text}}</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

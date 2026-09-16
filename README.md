@@ -27,11 +27,21 @@ The bot reads Duke's current-season schedule from CollegeFootballData, checks ea
 BACKFILL_DAYS=14 node src/index.js
 ```
 
+Canonical ingestion can be run separately after setting `INGEST_YEAR`:
+
+```bash
+INGEST_YEAR=2026 npm run ingest
+```
+
+GitHub Actions also provides a manual **Canonical Data Ingestion** workflow. Run it with the target season before enabling an automatic ingestion schedule.
+
 ## GitHub Actions
 
-The scheduled workflow requires these repository secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CFB_DATA_KEY`, `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, and `TWITTER_ACCESS_SECRET`. The service-role key is server-only and must never be exposed in a public site or client application.
+The scheduled workflow requires these repository secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CFB_DATA_KEY`, `OPENAI_API_KEY`, `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, and `TWITTER_ACCESS_SECRET`. The Supabase service-role and OpenAI keys are server-only and must never be exposed in a public site or client application.
 
 The workflow runs every 15 minutes. A manual run accepts `backfill_days`, which defaults to 30. Account mentions are disabled; the configured hashtags remain.
+
+Final Scorigami posts generate a Wallace Wade scoreboard card. When `OPENAI_API_KEY` is available, OpenAI edits the stadium screen while the application overlays the verified score and team data. If image editing fails, the bot falls back to a deterministic card and then to text-only posting.
 
 Before deploying the post-metadata release, run `supabase/migrations/20260914_add_post_metadata.sql` in the production Supabase SQL Editor. It adds tweet IDs, URLs, content types, external game IDs, unique event indexes, and enables RLS on the bot tables. Add `SUPABASE_SERVICE_ROLE_KEY` to GitHub Actions before running the updated workflow.
 
@@ -42,6 +52,14 @@ Before deploying the post-metadata release, run `supabase/migrations/20260914_ad
 - `src/gameApi.js` — CollegeFootballData schedule and venue requests.
 - `src/gameUtils.js` — Score and recovery-window helpers.
 - `data/` — Directory containing historical game data.
+
+## Sports Publishing Engine
+
+The canonical publishing schema lives in `supabase/migrations/20260916133805_sports_publishing_foundation.sql`. It adds normalized sports, teams, games, source records, analytics, deterministic facts, editorial directives, subscribers, newsletter issues, and delivery history without removing the legacy Duke tables.
+
+The first ingestion slice is available with `npm run ingest`. It normalizes the current-season CFBData schedule and can persist canonical games through the server-only Supabase service-role key. Optional provider adapters are available for Winsipedia, SportsDataverse, Visual Crossing, and The Odds API as their credentials/endpoints are configured.
+
+Event detection is deterministic and returns tiered `headline_directive` data. AI is intended only to turn those verified facts into editorial language; it must not calculate statistics.
 
 ## Contributing
 

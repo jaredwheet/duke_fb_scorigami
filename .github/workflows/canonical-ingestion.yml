@@ -1,0 +1,38 @@
+name: Canonical Data Ingestion
+
+on:
+  workflow_dispatch:
+    inputs:
+      ingest_year:
+        description: 'Season to ingest into the canonical publishing tables'
+        required: false
+        default: '2026'
+        type: string
+
+concurrency:
+  group: canonical-data-ingestion
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ingest canonical game data
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CFB_DATA_KEY: ${{ secrets.CFB_DATA_KEY }}
+          INGEST_YEAR: ${{ inputs.ingest_year || '2026' }}
+        run: npm run ingest
