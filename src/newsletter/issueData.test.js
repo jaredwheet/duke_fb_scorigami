@@ -9,6 +9,21 @@ test('builds Sunday content from verified game and play facts', () => {
     ],
     sourcePayload: { id: 401858217, homeTeam: 'Illinois', awayTeam: 'Duke' },
     detailsPayload: {
+      teamStats: [{ teams: [
+        { team: 'Illinois', stats: [{ category: 'turnovers', stat: '1' }] },
+        { team: 'Duke', stats: [{ category: 'turnovers', stat: '0' }] },
+      ] }],
+      playerStats: [{ teams: [{
+        team: 'Duke',
+        categories: [
+          { name: 'passing', types: [
+            { name: 'C/ATT', athletes: [{ name: 'Duke QB', stat: '20/30' }] },
+            { name: 'YDS', athletes: [{ name: 'Duke QB', stat: '250' }] },
+            { name: 'TD', athletes: [{ name: 'Duke QB', stat: '2' }] },
+            { name: 'INT', athletes: [{ name: 'Duke QB', stat: '1' }] },
+          ] },
+        ],
+      }] }],
       plays: [
         { playNumber: 1, period: 1, offense: 'Duke', defense: 'Illinois', offenseScore: 7, defenseScore: 0, scoring: true, clock: { minutes: 10, seconds: 0 }, playText: 'Touchdown' },
         { playNumber: 2, period: 4, offense: 'Duke', defense: 'Illinois', offenseScore: 31, defenseScore: 27, scoring: true, clock: { minutes: 2, seconds: 0 }, playText: 'Touchdown' },
@@ -21,6 +36,8 @@ test('builds Sunday content from verified game and play facts', () => {
   expect(data.headline).toBe('DUKE GETS THE WIN');
   expect(data.quarters[0].final).toBe(31);
   expect(data.scoring_plays).toHaveLength(2);
+  expect(data.numbers[1]).toEqual({ value: '+1', label: 'TURNOVER MARGIN', detail: 'Duke 0, Illinois 1.' });
+  expect(data.leaders.passing[0]).toEqual({ name: 'Duke QB', line: '20/30, 250 YDS, 2 TD, 1 INT' });
   expect(data.scorigami_status).toBe('FAMILIAR TERRITORY.');
   expect(data.source_url).toBe('https://www.winsipedia.com/duke/schedule/2026');
 });

@@ -70,6 +70,76 @@ function getScoringRows(plays, dukeName) {
     }));
 }
 
+function getTeamBoxes(detailsPayload) {
+  return (detailsPayload?.teamStats || []).flatMap((game) => game.teams || []);
+}
+
+function getPlayerBoxes(detailsPayload) {
+  return (detailsPayload?.playerStats || []).flatMap((game) => game.teams || []);
+}
+
+function getTeamStats(teamBox) {
+  return Object.fromEntries((teamBox?.stats || []).map((stat) => [stat.category, stat.stat]));
+}
+
+function getPlayerMetrics(teamBox, categoryName) {
+  const category = (teamBox?.categories || []).find((candidate) => candidate.name?.toLowerCase() === categoryName);
+  const players = new Map();
+  for (const type of category?.types || []) {
+    for (const athlete of type.athletes || []) {
+      const metrics = players.get(athlete.name) || {};
+      metrics[type.name] = athlete.stat;
+      players.set(athlete.name, metrics);
+    }
+  }
+  return [...players.entries()].map(([name, metrics]) => ({ name, metrics }));
+}
+
+function numericStat(value) {
+  const number = Number.parseFloat(String(value ?? '').replaceAll(',', ''));
+  return Number.isFinite(number) ? number : null;
+}
+
+function leaderRow(teamBox, categoryName, primaryStat, fields) {
+  const leader = getPlayerMetrics(teamBox, categoryName)
+    .filter(({ metrics }) => numericStat(metrics[primaryStat]) != null)
+    .sort((a, b) => numericStat(b.metrics[primaryStat]) - numericStat(a.metrics[primaryStat]))[0];
+  if (!leader) return null;
+
+  const line = fields
+    .map(([key, label]) => leader.metrics[key] == null || leader.metrics[key] === '--'
+      ? null
+      : `${leader.metrics[key]}${label ? ` ${label}` : ''}`)
+    .filter(Boolean)
+    .join(', ');
+  return { name: leader.name, line };
+}
+
+function getLeaders(detailsPayload, dukeName) {
+  const dukePlayerBox = getPlayerBoxes(detailsPayload).find((team) => team.team === dukeName);
+  return {
+    passing: [leaderRow(dukePlayerBox, 'passing', 'YDS', [['C/ATT', ''], ['YDS', 'YDS'], ['TD', 'TD'], ['INT', 'INT']])].filter(Boolean),
+    rushing: [leaderRow(dukePlayerBox, 'rushing', 'YDS', [['CAR', 'CAR'], ['YDS', 'YDS'], ['TD', 'TD']])].filter(Boolean),
+    receiving: [leaderRow(dukePlayerBox, 'receiving', 'YDS', [['REC', 'REC'], ['YDS', 'YDS'], ['TD', 'TD']])].filter(Boolean),
+    defense: [leaderRow(dukePlayerBox, 'defensive', 'TOT', [['TOT', 'TKL'], ['SACKS', 'SACKS'], ['TFL', 'TFL']])].filter(Boolean),
+  };
+}
+
+function getTurnoverNumber(detailsPayload, dukeName, opponent) {
+  const teamBoxes = getTeamBoxes(detailsPayload);
+  const dukeStats = getTeamStats(teamBoxes.find((team) => team.team === dukeName));
+  const opponentStats = getTeamStats(teamBoxes.find((team) => team.team === opponent));
+  const dukeTurnovers = numericStat(dukeStats.turnovers);
+  const opponentTurnovers = numericStat(opponentStats.turnovers);
+  if (dukeTurnovers == null || opponentTurnovers == null) return null;
+
+  const margin = opponentTurnovers - dukeTurnovers;
+  return {
+    value: margin > 0 ? `+${margin}` : String(margin),
+    detail: `Duke ${dukeTurnovers}, ${opponent} ${opponentTurnovers}.`,
+  };
+}
+
 function buildNarrative({ dukeScore, opponentScore, opponent, directive, facts }) {
   if (directive?.directive_key === 'scorigami_final' || facts?.scorigami?.isNew) {
     return `Duke finished ${dukeScore}-${opponentScore} against ${opponent}. The final score pair had not previously appeared in the verified Duke football record. The historical result now leads the Sunday file.`;
@@ -100,6 +170,7 @@ export function buildSundayIssueData({
   const scoringRows = getScoringRows(plays, dukeName);
   const fourthQuarterPoints = quarterRows[0]?.q4;
   const scoreFacts = facts?.scorigami || {};
+  const turnoverNumber = getTurnoverNumber(detailsPayload, dukeName, scores.opponent);
   const nextDetails = nextGame
     ? `${new Date(nextGame.start_at).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${nextGame.venue_name || 'Venue TBD'} · TV: TBD`
     : 'Schedule details are not yet available.';
@@ -119,15 +190,10 @@ export function buildSundayIssueData({
     scoring_plays: scoringRows,
     numbers: [
       { value: fourthQuarterPoints ?? '—', label: 'FOURTH-QUARTER POINTS', detail: 'Derived from verified play-by-play.' },
-      { value: '—', label: 'TURNOVER MARGIN', detail: 'Awaiting a verified team-stat feed.' },
+      { value: turnoverNumber?.value || '—', label: 'TURNOVER MARGIN', detail: turnoverNumber?.detail || 'Awaiting a verified team-stat feed.' },
       { value: plays.length || '—', label: 'RECORDED PLAYS', detail: 'CFBData play-by-play records.' },
     ],
-    leaders: {
-      passing: [{ name: 'Player leaders', line: 'Awaiting verified player-stat feed.' }],
-      rushing: [],
-      receiving: [],
-      defense: [],
-    },
+    leaders: getLeaders(detailsPayload, dukeName),
     scorigami_status: scoreFacts.isNew ? 'NEW SCORE!' : 'FAMILIAR TERRITORY.',
     scorigami_context: scoreFacts.isNew
       ? `${scoreFacts.scorePair || `${scores.dukeScore}-${scores.opponentScore}`} had never occurred in Duke football history.`
