@@ -45,8 +45,15 @@ function expectancyForPlay(play, dukeName, opponentName) {
     : 0;
   const probability = 1 / (1 + Math.exp(-((dukeScore - opponentScore) / scale + possession + fieldPosition)));
   return {
+    play,
     probability,
     expectancy: Math.max(-50, Math.min(50, (probability - 0.5) * 100)),
+    dukeScore,
+    opponentScore,
+    down: number(play.down),
+    distance: number(play.distance),
+    playType: play.playType || null,
+    scoring: Boolean(play.scoring),
     period: number(play.period),
     time: `${String(number(play.clock?.minutes) || 0).padStart(2, '0')}:${String(number(play.clock?.seconds) || 0).padStart(2, '0')}`,
     playText: play.playText || null,
@@ -95,6 +102,25 @@ export function calculateWinExpectancySnapshots({
   }
 
   return snapshots;
+}
+
+export function findLargestWinExpectancySwing(snapshots = []) {
+  let largest = null;
+  for (let index = 1; index < snapshots.length; index += 1) {
+    const previous = snapshots[index - 1];
+    const current = snapshots[index];
+    if (!current.playText) continue;
+    const delta = current.expectancy - previous.expectancy;
+    if (delta > 0 && (!largest || delta > largest.delta)) {
+      largest = {
+        ...current,
+        beforeExpectancy: previous.expectancy,
+        afterExpectancy: current.expectancy,
+        delta: Math.round(delta * 10) / 10,
+      };
+    }
+  }
+  return largest;
 }
 
 function escapeXml(value) {

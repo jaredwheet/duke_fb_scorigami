@@ -149,7 +149,7 @@ test('uses canonical player names in a second-half touchdown moment', () => {
     facts: {},
   });
 
-  expect(data.turning_point).toMatchObject({ type: 'touchdown', description: 'Walker Eget found Nate Sheppard for a touchdown with 10:47 left in the third quarter (Duke 28, Illinois 24).' });
+  expect(data.turning_point).toMatchObject({ type: 'win_probability_swing', description: 'Duke\'s win expectancy jumped 11.6 points when Walker Eget found Nate Sheppard for a touchdown with 10:47 left in the third quarter (Duke 28, Illinois 24).' });
 });
 
 test('adds prior Scorigami games and next-game network context', () => {

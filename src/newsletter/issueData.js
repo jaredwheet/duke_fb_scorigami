@@ -1,4 +1,4 @@
-import { calculateWinExpectancySnapshots } from './winExpectancy.js';
+import { calculateWinExpectancySnapshots, findLargestWinExpectancySwing } from './winExpectancy.js';
 
 function isDuke(team) {
   return team?.slug === 'duke' || team?.name?.toLowerCase() === 'duke';
@@ -264,7 +264,7 @@ function getTotalOffenseNumber(detailsPayload, dukeName, opponent) {
   };
 }
 
-function getTurningPoint(plays, dukeName, opponentName, playerNames = []) {
+function getTurningPoint(plays, dukeName, opponentName, playerNames = [], largestSwing = null) {
   const ordered = (plays || []).slice().sort((left, right) => {
     const periodDifference = Number(left.period || 0) - Number(right.period || 0);
     if (periodDifference !== 0) return periodDifference;
@@ -305,6 +305,37 @@ function getTurningPoint(plays, dukeName, opponentName, playerNames = []) {
     const scoreText = after ? `Duke ${after.duke}, ${opponentName} ${after.opponent}` : null;
     return `${timeText}${scoreText ? ` (${scoreText})` : ''}`;
   };
+  const describePlay = (play) => {
+    const text = play?.playText || '';
+    const pass = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+pass.*?to\s+#\d+\s+([A-Za-z]\.\S+)/i);
+    if (pass) return `${resolvePlayer(pass[1])} found ${resolvePlayer(pass[2])} for a touchdown`;
+    const rush = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+rush/i);
+    if (rush) return `${resolvePlayer(rush[1])} scored on the ground`;
+    const fieldGoal = text.match(/#\d+\s+([A-Za-z]\.\S+)\s+field goal attempt from\s+(\d+)/i);
+    if (fieldGoal) return `${resolvePlayer(fieldGoal[1])} hit a ${fieldGoal[2]}-yard field goal`;
+    return null;
+  };
+  if (largestSwing?.delta >= 8 && largestSwing.playText && !/field goal/i.test(largestSwing.playText)) {
+    const swingQuarter = ['first', 'second', 'third', 'fourth'][Number(largestSwing.period) - 1] || 'overtime';
+    const swingTime = Number(largestSwing.period) >= 5
+      ? 'in overtime'
+      : `with ${largestSwing.time} left in the ${swingQuarter} quarter`;
+    const swingScore = largestSwing.dukeScore != null
+      ? ` (Duke ${largestSwing.dukeScore}, ${opponentName} ${largestSwing.opponentScore})`
+      : '';
+    const playDescription = describePlay(largestSwing.play) || 'Duke made a major play';
+    return {
+      type: 'win_probability_swing',
+      period: largestSwing.period,
+      time: largestSwing.time,
+      delta: largestSwing.delta,
+      beforeExpectancy: largestSwing.beforeExpectancy,
+      afterExpectancy: largestSwing.afterExpectancy,
+      description: `Duke's win expectancy jumped ${largestSwing.delta} points when ${playDescription} ${swingTime}${swingScore}.`,
+      playText: largestSwing.playText,
+      factsUsed: ['game.win_expectancy', 'game.scoring_plays'],
+    };
+  }
   const fakePunt = dukePlays.find((play) => /fake punt|punt fake|fake field goal/i.test(play.playText || ''));
   if (fakePunt) {
     return {
@@ -509,7 +540,6 @@ export function buildSundayIssueData({
   const playerNames = getPlayerBoxes(detailsPayload)
     .flatMap((team) => (team.categories || []).flatMap((category) => (category.types || []).flatMap((type) => (type.athletes || []).map((athlete) => athlete.name))))
     .filter(Boolean);
-  const turningPoint = getTurningPoint(plays, dukeName, scores.opponent, playerNames);
   const winExpectancySnapshots = calculateWinExpectancySnapshots({
     plays,
     dukeName,
@@ -517,6 +547,8 @@ export function buildSundayIssueData({
     dukeScore: scores.dukeScore,
     opponentScore: scores.opponentScore,
   });
+  const largestWinExpectancySwing = findLargestWinExpectancySwing(winExpectancySnapshots);
+  const turningPoint = getTurningPoint(plays, dukeName, scores.opponent, playerNames, largestWinExpectancySwing);
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
   const nextDetails = formatNextDetails(nextGame, nextSchedule);
   const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
@@ -529,6 +561,7 @@ export function buildSundayIssueData({
     turning_point: turningPoint,
     win_expectancy: {
       snapshots: winExpectancySnapshots,
+      largest_swing: largestWinExpectancySwing,
       caption: 'Duke win expectancy model from play-by-play, score, clock, possession, and field position. The center line marks 50/50.',
     },
     issue_date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
