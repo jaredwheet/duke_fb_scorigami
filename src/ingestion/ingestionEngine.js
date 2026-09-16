@@ -36,8 +36,8 @@ export async function ingestDukeSeason({
   return masterGames;
 }
 
-async function upsertTeam(sportId, team) {
-  const { data, error } = await supabase
+async function upsertTeam(client, sportId, team) {
+  const { data, error } = await client
     .from('teams')
     .upsert({
       sport_id: sportId,
@@ -56,8 +56,8 @@ async function upsertTeam(sportId, team) {
 }
 
 export async function persistMasterGame(masterGame, client = null) {
-  const supabase = client || (await import('../supabaseClient.js')).default;
-  const { data: sport, error: sportError } = await supabase
+  const db = client || (await import('../supabaseClient.js')).default;
+  const { data: sport, error: sportError } = await db
     .from('sports')
     .upsert(masterGame.sport, { onConflict: 'slug' })
     .select('id')
@@ -68,11 +68,11 @@ export async function persistMasterGame(masterGame, client = null) {
   for (const participant of masterGame.participants) {
     participants.push({
       ...participant,
-      teamId: await upsertTeam(sport.id, participant.team),
+      teamId: await upsertTeam(db, sport.id, participant.team),
     });
   }
 
-  const { data: game, error: gameError } = await supabase
+  const { data: game, error: gameError } = await db
     .from('games')
     .upsert({
       sport_id: sport.id,
@@ -92,7 +92,7 @@ export async function persistMasterGame(masterGame, client = null) {
   if (gameError) throw gameError;
 
   for (const participant of participants) {
-    const { error } = await supabase
+    const { error } = await db
       .from('game_participants')
       .upsert({
         game_id: game.id,
@@ -105,7 +105,7 @@ export async function persistMasterGame(masterGame, client = null) {
   }
 
   for (const source of masterGame.sourceRecords) {
-    const { error } = await supabase
+    const { error } = await db
       .from('game_source_records')
       .upsert({
         game_id: game.id,
