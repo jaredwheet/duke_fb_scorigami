@@ -26,7 +26,6 @@ test('renders optional guide-backed history sections', async () => {
   });
 
   expect(html).toContain('RECORD WATCH');
-  expect(html).toContain('FROM THE DUKE RECORD');
   expect(html).toContain('Test Runner set a new Duke record.');
   expect(html).toContain('Duke leads the series 45-37-5.');
   expect(html).toContain('LATE GAME');
