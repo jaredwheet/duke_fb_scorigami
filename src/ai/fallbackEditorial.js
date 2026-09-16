@@ -29,7 +29,7 @@ export function buildDeterministicEditorialFallback(issueData = {}) {
 
   return {
     recap: {
-      headline: won ? `DUKE MAKES ${opponent.toUpperCase()} A PROBLEM` : issueData.headline || `DUKE FALLS TO ${opponent.toUpperCase()}`,
+      headline: won ? `DUKE TURNS ${opponent.toUpperCase()} INTO A ROAD WIN` : issueData.headline || `DUKE FALLS TO ${opponent.toUpperCase()}`,
       subheadline: issueData.subheadline || '',
       narrative: [issueData.narrative, flourish].filter(Boolean).join(' '),
       factsUsed: ['game.score', 'game.numbers', 'game.leaders', 'moment'],

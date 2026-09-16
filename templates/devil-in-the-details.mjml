@@ -65,6 +65,8 @@
       </mj-column>
     </mj-section>
 
+    {{win_expectancy_section}}
+
     <mj-section background-color="#f8f4ea" padding="24px 18px 10px">
       <mj-column>
         <mj-text font-size="12px" letter-spacing="3px" font-weight="700" padding-left="6px">THREE NUMBERS THAT TELL THE STORY</mj-text>

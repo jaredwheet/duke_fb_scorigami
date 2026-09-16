@@ -7,6 +7,9 @@ function validateText(value, field, maxLength, issues, allowedNumbers) {
   }
   if (value.length > maxLength) issues.push(`${field} is too long`);
   if (forbiddenTerms.test(value)) issues.push(`${field} contains internal terminology`);
+  if (field === 'recap.headline' && /\b(?:makes|made)\s+.+\s+(?:a|the)\s+problem\b/i.test(value)) {
+    issues.push(`${field} frames the opponent ambiguously`);
+  }
   for (const number of value.match(/\b\d+(?:\.\d+)?\b/g) || []) {
     if (!allowedNumbers.has(number)) issues.push(`${field} contains unsupported number ${number}`);
   }

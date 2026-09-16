@@ -63,6 +63,7 @@ test('builds Sunday content from verified game and play facts', () => {
   expect(data.leaders.passing[0]).toEqual({ name: 'Duke QB', line: '20/30, 250 YDS, 2 TD, 1 INT' });
   expect(data.scorigami_status).toBe('FAMILIAR TERRITORY.');
   expect(data.source_url).toBe('https://www.winsipedia.com/duke/schedule/2026');
+  expect(data.win_expectancy.snapshots.length).toBeGreaterThan(1);
 });
 
 test('keeps the rusher name in a live CFBData rushing touchdown description', () => {

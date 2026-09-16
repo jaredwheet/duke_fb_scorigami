@@ -1,3 +1,5 @@
+import { calculateWinExpectancySnapshots } from './winExpectancy.js';
+
 function isDuke(team) {
   return team?.slug === 'duke' || team?.name?.toLowerCase() === 'duke';
 }
@@ -419,6 +421,13 @@ export function buildSundayIssueData({
   const teamNumber = getFourthDownNumber(detailsPayload, dukeName, scores.opponent)
     || getTotalOffenseNumber(detailsPayload, dukeName, scores.opponent);
   const turningPoint = getTurningPoint(plays, dukeName);
+  const winExpectancySnapshots = calculateWinExpectancySnapshots({
+    plays,
+    dukeName,
+    opponentName: scores.opponent,
+    dukeScore: scores.dukeScore,
+    opponentScore: scores.opponentScore,
+  });
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
   const nextDetails = formatNextDetails(nextGame, nextSchedule);
   const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
@@ -429,6 +438,10 @@ export function buildSundayIssueData({
     current_opponent: scores.opponent,
     current_score: `${scores.dukeScore}-${scores.opponentScore}`,
     turning_point: turningPoint,
+    win_expectancy: {
+      snapshots: winExpectancySnapshots,
+      caption: 'Duke win expectancy from kickoff to final. The center line marks a 50/50 game.',
+    },
     issue_date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
     issue_number: String(game.season),
     ...buildLeadCopy({

@@ -57,3 +57,21 @@ test('runs specialized agents against one packet and merges only editorial field
   expect(result.issueData.headline).toBe('DUKE OUTLASTS ILLINOIS');
   expect(result.issueData.acc_context.editorialBlurb).toBe('Clemson won its ACC opener.');
 });
+
+test('uses a Duke-positive headline in the deterministic fallback', async () => {
+  const result = await runEditorialOrchestrator({
+    headline: 'DUKE OUTLASTS ILLINOIS',
+    subheadline: 'Duke won 31-27.',
+    narrative: 'Duke rallied late.',
+    current_opponent: 'Illinois',
+    current_score: '31-27',
+    scorigami_context: '27-31 has occurred twice before.',
+    quarters: [{ final: 31 }, { final: 27 }],
+    numbers: [],
+    leaders: {},
+    guide_context: {},
+    acc_context: {},
+  }, { apiKey: null });
+
+  expect(result.issueData.headline).toBe('DUKE TURNS ILLINOIS INTO A ROAD WIN');
+});

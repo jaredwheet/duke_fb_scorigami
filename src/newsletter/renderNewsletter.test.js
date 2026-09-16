@@ -54,3 +54,11 @@ test('renders ACC standings and final results', async () => {
   expect(html).toContain('1-0');
   expect(html).toContain('Clemson moved into the ACC race');
 });
+
+test('renders the win-expectancy chart section when an inline image is provided', async () => {
+  const html = await renderDevilInDetails({ win_expectancy: { imageSource: 'cid:duke-win-expectancy', caption: 'Chart caption' } });
+
+  expect(html).toContain('WIN EXPECTANCY');
+  expect(html).toContain('cid:duke-win-expectancy');
+  expect(html).toContain('Chart caption');
+});

@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { runEditorialOrchestrator } from '../ai/orchestrator.js';
 import { renderDevilInDetails } from './renderNewsletter.js';
 import { loadLatestSundayIssueData } from './loadSundayIssueData.js';
+import { renderWinExpectancyChart } from './winExpectancy.js';
 
 const apiKey = process.env.RESEND_API_KEY;
 const recipient = process.env.NEWSLETTER_TEST_TO;
@@ -19,12 +20,21 @@ const editorialResult = deterministicIssueData.current_score
   : null;
 const issueData = editorialResult?.issueData || deterministicIssueData;
 if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
-const html = await renderDevilInDetails(issueData);
+const chartBuffer = issueData.win_expectancy?.snapshots?.length > 1
+  ? await renderWinExpectancyChart(issueData.win_expectancy.snapshots)
+  : null;
+const html = await renderDevilInDetails({
+  ...issueData,
+  win_expectancy: chartBuffer
+    ? { ...issueData.win_expectancy, imageSource: 'cid:duke-win-expectancy' }
+    : null,
+});
 const { data, error } = await resend.emails.send({
   from: process.env.RESEND_FROM_EMAIL || 'Duke Football Scorigami <onboarding@resend.dev>',
   to: [recipient],
   subject: 'TEST: Devil in the Details',
   html,
+  attachments: chartBuffer ? [{ filename: 'duke-win-expectancy.png', content: chartBuffer, contentId: 'duke-win-expectancy' }] : undefined,
   tags: [{ name: 'environment', value: 'test' }],
   headers: { 'X-Entity-Ref-ID': `duke-scorigami-test-${Date.now()}` },
 });

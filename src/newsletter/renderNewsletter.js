@@ -168,6 +168,19 @@ function buildGuideSections(context = null) {
   return blocks.join('');
 }
 
+function buildWinExpectancySection(chart = null) {
+  if (!chart?.imageSource) return '';
+  return `
+    <mj-section background-color="#f8f4ea" padding="18px 24px 8px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">WIN EXPECTANCY</mj-text>
+        <mj-image src="${escapeHtml(chart.imageSource)}" alt="Duke win expectancy chart" padding-top="10px" padding-bottom="0" />
+        <mj-text font-size="10px" line-height="1.35" color="#607080" padding-top="6px">${escapeHtml(chart.caption || '')}</mj-text>
+      </mj-column>
+    </mj-section>
+  `;
+}
+
 const defaultData = {
   subject: 'Devil in the Details: Duke Football',
   preview_text: 'The latest Duke football score and the numbers behind it.',
@@ -218,6 +231,7 @@ export async function renderDevilInDetails(data = {}) {
     quarter_rows: buildQuarterRows(input.quarters),
     scoring_rows: buildScoringRows(input.scoring_plays),
     guide_sections: buildGuideSections(input.guide_context),
+    win_expectancy_section: buildWinExpectancySection(input.win_expectancy),
     passing_rows: buildLeaderRows('PASSING', input.leaders?.passing),
     rushing_rows: buildLeaderRows('RUSHING', input.leaders?.rushing),
     receiving_rows: buildLeaderRows('RECEIVING', input.leaders?.receiving),
@@ -236,7 +250,7 @@ export async function renderDevilInDetails(data = {}) {
 
   const rendered = template.replace(/\{\{([a-z_]+)\}\}/g, (_, key) => {
     const value = values[key] ?? '';
-    return key.endsWith('_rows') || key.endsWith('_sections') ? value : escapeHtml(value);
+    return key.endsWith('_rows') || key.endsWith('_sections') || key.endsWith('_section') ? value : escapeHtml(value);
   });
   const result = await mjml2html(rendered, { validationLevel: 'strict' });
   const errors = result.errors || [];
