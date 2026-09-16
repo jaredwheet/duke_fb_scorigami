@@ -46,3 +46,24 @@ test('does not invent a comeback without a verified scoring progression', () => 
 
   expect(facts.narrative).toEqual({});
 });
+
+test('does not call a fourth-quarter late lead when Duke already led after the third', () => {
+  const facts = calculateGameNarrativeFacts({
+    guide: loadMediaGuide(),
+    game: {
+      season: 2026,
+      participants: [
+        { team: { slug: 'duke', name: 'Duke' }, score: 31 },
+        { team: { slug: 'illinois', name: 'Illinois' }, score: 27 },
+      ],
+    },
+    detailsPayload: {
+      plays: [
+        { playNumber: 1, period: 3, clock: { minutes: 0, seconds: 0 }, offense: 'Duke', defense: 'Illinois', offenseScore: 28, defenseScore: 27 },
+        { playNumber: 2, period: 4, clock: { minutes: 14, seconds: 5 }, offense: 'Duke', defense: 'Illinois', offenseScore: 31, defenseScore: 27 },
+      ],
+    },
+  });
+
+  expect(facts.narrative.lateGameWin).toBeUndefined();
+});

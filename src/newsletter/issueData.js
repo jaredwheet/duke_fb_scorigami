@@ -265,27 +265,63 @@ function getTotalOffenseNumber(detailsPayload, dukeName, opponent) {
 }
 
 function getTurningPoint(plays, dukeName) {
-  const dukePlays = (plays || []).filter((play) => play.offense === dukeName);
+  const ordered = (plays || []).slice().sort((left, right) => {
+    const periodDifference = Number(left.period || 0) - Number(right.period || 0);
+    if (periodDifference !== 0) return periodDifference;
+    const leftClock = (Number(left.clock?.minutes || 0) * 60) + Number(left.clock?.seconds || 0);
+    const rightClock = (Number(right.clock?.minutes || 0) * 60) + Number(right.clock?.seconds || 0);
+    return rightClock - leftClock;
+  });
+  const dukePlays = ordered.filter((play) => play.offense === dukeName);
+  const player = (play) => play.playText?.match(/#\d+\s+[A-Za-z]\.([A-Za-z][A-Za-z'-]*)/)?.[1] || null;
+  const time = (play) => `${String(play.clock?.minutes ?? 0).padStart(2, '0')}:${String(play.clock?.seconds ?? 0).padStart(2, '0')}`;
   const fakePunt = dukePlays.find((play) => /fake punt|punt fake|fake field goal/i.test(play.playText || ''));
   if (fakePunt) {
     return {
       type: 'fake_punt',
       period: fakePunt.period,
-      time: `${String(fakePunt.clock?.minutes ?? 0).padStart(2, '0')}:${String(fakePunt.clock?.seconds ?? 0).padStart(2, '0')}`,
+      time: time(fakePunt),
+      description: player(fakePunt)
+        ? `${player(fakePunt)} caught Illinois napping on a fake punt.`
+        : 'Duke caught Illinois napping on a fake punt.',
       playText: fakePunt.playText,
       factsUsed: ['game.scoring_plays'],
     };
   }
 
+  const lateScore = dukePlays.find((play) => Number(play.period) >= 4 && play.scoring);
+  if (lateScore) {
+    const name = player(lateScore);
+    const yards = Number(lateScore.yardsGained);
+    const playType = String(lateScore.playType || '').toLowerCase();
+    const description = playType.includes('field goal') && Number.isFinite(yards)
+      ? `${name || 'Duke'} hit a ${yards}-yard field goal to give Duke breathing room.`
+      : name
+        ? `${name} delivered a late scoring play for Duke.`
+        : 'Duke delivered a late scoring play.';
+    return {
+      type: 'late_score',
+      period: lateScore.period,
+      time: time(lateScore),
+      description,
+      playText: lateScore.playText,
+      factsUsed: ['game.scoring_plays'],
+    };
+  }
+
   const explosivePlay = dukePlays
-    .filter((play) => Number(play.yardsGained) >= 20)
+    .filter((play) => Number(play.yardsGained) >= 20 && !/field goal|punt|kickoff|extra point/i.test(play.playType || play.playText || ''))
     .sort((left, right) => Number(right.yardsGained) - Number(left.yardsGained))[0];
   if (explosivePlay) {
+    const name = player(explosivePlay);
     return {
       type: 'explosive_play',
       yards: Number(explosivePlay.yardsGained),
       period: explosivePlay.period,
-      time: `${String(explosivePlay.clock?.minutes ?? 0).padStart(2, '0')}:${String(explosivePlay.clock?.seconds ?? 0).padStart(2, '0')}`,
+      time: time(explosivePlay),
+      description: name
+        ? `${name} broke free for ${Number(explosivePlay.yardsGained)} yards.`
+        : `Duke broke free for ${Number(explosivePlay.yardsGained)} yards.`,
       playText: explosivePlay.playText,
       factsUsed: ['game.scoring_plays'],
     };
@@ -440,7 +476,7 @@ export function buildSundayIssueData({
     turning_point: turningPoint,
     win_expectancy: {
       snapshots: winExpectancySnapshots,
-      caption: 'Duke win expectancy from kickoff to final. The center line marks a 50/50 game.',
+      caption: 'Duke win expectancy model from play-by-play, score, clock, possession, and field position. The center line marks 50/50.',
     },
     issue_date: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
     issue_number: String(game.season),

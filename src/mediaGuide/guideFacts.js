@@ -70,6 +70,16 @@ function scoreSnapshot(play, dukeName, opponentName) {
   return null;
 }
 
+function orderedPlays(plays) {
+  return [...plays].sort((left, right) => {
+    const periodDifference = Number(left.period || 0) - Number(right.period || 0);
+    if (periodDifference !== 0) return periodDifference;
+    const leftClock = (Number(left.clock?.minutes || 0) * 60) + Number(left.clock?.seconds || 0);
+    const rightClock = (Number(right.clock?.minutes || 0) * 60) + Number(right.clock?.seconds || 0);
+    return rightClock - leftClock;
+  });
+}
+
 function citationFor(guide, citationId) {
   const citation = guide.citations?.[citationId];
   return citation ? { edition: guide.edition, ...citation } : null;
@@ -89,7 +99,7 @@ export function calculateComebackFact({
 
   let largestDeficit = 0;
   let trailingAt = null;
-  for (const play of [...plays].sort((left, right) => (left.playNumber || 0) - (right.playNumber || 0))) {
+  for (const play of orderedPlays(plays)) {
     const snapshot = scoreSnapshot(play, dukeName, opponentName);
     if (!snapshot) continue;
     const deficit = snapshot.opponent - snapshot.duke;
@@ -135,12 +145,15 @@ export function calculateLateGameFact({
   const finalOpponentScore = numericStat(opponentScore);
   if (finalDukeScore == null || finalOpponentScore == null || finalDukeScore <= finalOpponentScore) return null;
 
-  let previousSnapshot = null;
+  const snapshots = orderedPlays(plays)
+    .map((play) => ({ play, period: numericStat(play.period), snapshot: scoreSnapshot(play, dukeName, opponentName) }))
+    .filter((entry) => entry.snapshot);
+  const endOfThirdQuarter = snapshots.filter((entry) => entry.period <= 3).at(-1)?.snapshot || null;
+  if (endOfThirdQuarter?.duke > endOfThirdQuarter?.opponent) return null;
+
+  let previousSnapshot = endOfThirdQuarter;
   let winningPlay = null;
-  for (const play of [...plays].sort((left, right) => (left.playNumber || 0) - (right.playNumber || 0))) {
-    const snapshot = scoreSnapshot(play, dukeName, opponentName);
-    if (!snapshot) continue;
-    const period = numericStat(play.period);
+  for (const { play, period, snapshot } of snapshots) {
     if (period >= 4 && snapshot.duke > snapshot.opponent && (!previousSnapshot || previousSnapshot.duke <= previousSnapshot.opponent)) {
       winningPlay = { play, period, snapshot };
     }

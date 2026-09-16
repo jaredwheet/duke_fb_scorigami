@@ -12,7 +12,7 @@ export function buildDeterministicEditorialFallback(issueData = {}) {
   const comeback = issueData.guide_context?.comeback;
 
   let flourish = won
-    ? `Duke made ${opponent} a problem.`
+    ? 'Duke made the scoreboard do the talking and added unnecessary drama.'
     : `The scoreboard was not in a forgiving mood.`;
   if (turningPoint?.type === 'fake_punt') {
     const player = extractPlayerFromPlay(turningPoint.playText);
@@ -20,11 +20,13 @@ export function buildDeterministicEditorialFallback(issueData = {}) {
       ? `${opponent} saw a punt team. Duke saw an opportunity. ${player} saw open grass.`
       : `${opponent} saw a punt team. Duke saw an opportunity.`;
   } else if (turningPoint?.type === 'explosive_play') {
-    flourish = `Duke found ${turningPoint.yards} yards when it needed them, and ${opponent} found out the afternoon was not over. It was worse than that.`;
+    flourish = turningPoint.description || `Duke found ${turningPoint.yards} yards and made the afternoon considerably less relaxing.`;
+  } else if (turningPoint?.description) {
+    flourish = turningPoint.description;
   } else if (fourthDown) {
     flourish = `Duke went ${fourthDown.value} on fourth down because apparently three downs were not enough.`;
   } else if (comeback?.comeback) {
-    flourish = `Duke trailed by ${comeback.largestDeficit} and responded by making the ending everybody else's problem.`;
+    flourish = `Duke trailed by ${comeback.largestDeficit} and turned the ending into a Duke production.`;
   }
 
   return {

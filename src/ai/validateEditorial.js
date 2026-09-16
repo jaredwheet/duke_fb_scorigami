@@ -24,20 +24,28 @@ function validateFactsUsed(value, field, allowed, issues) {
 }
 
 export function validateEditorialPackage({ packet, editorial }) {
-  const issues = [];
   const allowed = new Set(packet.allowedFactRefs || []);
   const allowedNumbers = new Set((JSON.stringify(packet).match(/\b\d+(?:\.\d+)?\b/g) || []));
-  validateText(editorial.recap?.headline, 'recap.headline', 90, issues, allowedNumbers);
-  validateText(editorial.recap?.subheadline, 'recap.subheadline', 180, issues, allowedNumbers);
-  validateText(editorial.recap?.narrative, 'recap.narrative', 500, issues, allowedNumbers);
-  validateFactsUsed(editorial.recap?.factsUsed, 'recap.factsUsed', allowed, issues);
-  validateText(editorial.scorigami?.context, 'scorigami.context', 500, issues, allowedNumbers);
-  validateFactsUsed(editorial.scorigami?.factsUsed, 'scorigami.factsUsed', allowed, issues);
-  validateText(editorial.history?.context, 'history.context', 400, issues, allowedNumbers);
-  validateFactsUsed(editorial.history?.factsUsed, 'history.factsUsed', allowed, issues);
-  validateText(editorial.acc?.blurb, 'acc.blurb', 300, issues, allowedNumbers);
-  validateFactsUsed(editorial.acc?.factsUsed, 'acc.factsUsed', allowed, issues);
-  validateText(editorial.moment?.blurb, 'moment.blurb', 300, issues, allowedNumbers);
-  validateFactsUsed(editorial.moment?.factsUsed, 'moment.factsUsed', allowed, issues);
-  return { approved: issues.length === 0, issues };
+  const sectionIssues = {
+    recap: [],
+    scorigami: [],
+    history: [],
+    acc: [],
+    moment: [],
+  };
+  const recapIssues = sectionIssues.recap;
+  validateText(editorial.recap?.headline, 'recap.headline', 90, recapIssues, allowedNumbers);
+  validateText(editorial.recap?.subheadline, 'recap.subheadline', 180, recapIssues, allowedNumbers);
+  validateText(editorial.recap?.narrative, 'recap.narrative', 500, recapIssues, allowedNumbers);
+  validateFactsUsed(editorial.recap?.factsUsed, 'recap.factsUsed', allowed, recapIssues);
+  validateText(editorial.scorigami?.context, 'scorigami.context', 500, sectionIssues.scorigami, allowedNumbers);
+  validateFactsUsed(editorial.scorigami?.factsUsed, 'scorigami.factsUsed', allowed, sectionIssues.scorigami);
+  validateText(editorial.history?.context, 'history.context', 400, sectionIssues.history, allowedNumbers);
+  validateFactsUsed(editorial.history?.factsUsed, 'history.factsUsed', allowed, sectionIssues.history);
+  validateText(editorial.acc?.blurb, 'acc.blurb', 300, sectionIssues.acc, allowedNumbers);
+  validateFactsUsed(editorial.acc?.factsUsed, 'acc.factsUsed', allowed, sectionIssues.acc);
+  validateText(editorial.moment?.blurb, 'moment.blurb', 300, sectionIssues.moment, allowedNumbers);
+  validateFactsUsed(editorial.moment?.factsUsed, 'moment.factsUsed', allowed, sectionIssues.moment);
+  const issues = Object.values(sectionIssues).flat();
+  return { approved: issues.length === 0, issues, sectionIssues };
 }

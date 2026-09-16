@@ -64,6 +64,7 @@ test('builds Sunday content from verified game and play facts', () => {
   expect(data.scorigami_status).toBe('FAMILIAR TERRITORY.');
   expect(data.source_url).toBe('https://www.winsipedia.com/duke/schedule/2026');
   expect(data.win_expectancy.snapshots.length).toBeGreaterThan(1);
+  expect(data.turning_point).toMatchObject({ type: 'late_score', description: expect.stringContaining('Salas') });
 });
 
 test('keeps the rusher name in a live CFBData rushing touchdown description', () => {

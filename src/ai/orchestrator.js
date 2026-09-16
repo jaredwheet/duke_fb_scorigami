@@ -64,32 +64,18 @@ export async function runEditorialOrchestrator(issueData, options = {}) {
     runMomentAgent(packet, options),
   ]);
   const editorial = { recap, scorigami, history, acc, moment };
-  let validation = validateEditorialPackage({ packet, editorial });
-  if (!validation.approved) {
-    const fallbackEditorial = {
-      ...buildDeterministicEditorialFallback(issueData),
-      recap: {
-        ...buildDeterministicEditorialFallback(issueData).recap,
-        warnings: validation.issues,
-      },
-      scorigami: {
-        context: issueData.scorigami_context,
-        factsUsed: ['scorigami'],
-        warnings: validation.issues,
-      },
-      history: {
-        context: issueData.guide_context?.opponentHistory?.statement || issueData.guide_context?.historicalFact?.statement || '',
-        factsUsed: ['history'],
-        warnings: validation.issues,
-      },
-      acc: { blurb: '', factsUsed: ['acc'], warnings: validation.issues },
-      moment: {
-        ...buildDeterministicEditorialFallback(issueData).moment,
-        warnings: validation.issues,
-      },
-    };
-    validation = validateEditorialPackage({ packet, editorial: fallbackEditorial });
-    return { issueData: applyEditorial(issueData, fallbackEditorial), editorial: fallbackEditorial, validation, mode: 'deterministic-fallback' };
-  }
-  return { issueData: applyEditorial(issueData, editorial), editorial, validation, mode: modelAvailable ? 'multi-agent' : 'deterministic-fallback' };
+  const validation = validateEditorialPackage({ packet, editorial });
+  const fallbackEditorial = buildDeterministicEditorialFallback(issueData);
+  const safeEditorial = Object.fromEntries(Object.keys(editorial).map((section) => [
+    section,
+    validation.sectionIssues[section]?.length ? fallbackEditorial[section] : editorial[section],
+  ]));
+  const finalValidation = validateEditorialPackage({ packet, editorial: safeEditorial });
+  const usedFallback = Object.keys(editorial).some((section) => validation.sectionIssues[section]?.length > 0);
+  return {
+    issueData: applyEditorial(issueData, safeEditorial),
+    editorial: safeEditorial,
+    validation: finalValidation,
+    mode: modelAvailable ? (usedFallback ? 'multi-agent-partial-fallback' : 'multi-agent') : 'deterministic-fallback',
+  };
 }

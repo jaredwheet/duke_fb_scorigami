@@ -11,14 +11,14 @@ function sameTeam(value, name) {
 
 function orderedPlays(plays) {
   return (plays || []).map((play, index) => ({ play, index })).sort((left, right) => {
-    const leftWallclock = Date.parse(left.play.wallclock || '');
-    const rightWallclock = Date.parse(right.play.wallclock || '');
-    if (Number.isFinite(leftWallclock) && Number.isFinite(rightWallclock) && leftWallclock !== rightWallclock) return leftWallclock - rightWallclock;
     const periodDifference = number(left.play.period) - number(right.play.period);
     if (periodDifference !== 0) return periodDifference;
     const leftClock = (number(left.play.clock?.minutes) || 0) * 60 + (number(left.play.clock?.seconds) || 0);
     const rightClock = (number(right.play.clock?.minutes) || 0) * 60 + (number(right.play.clock?.seconds) || 0);
     if (leftClock !== rightClock) return rightClock - leftClock;
+    const leftWallclock = Date.parse(left.play.wallclock || '');
+    const rightWallclock = Date.parse(right.play.wallclock || '');
+    if (Number.isFinite(leftWallclock) && Number.isFinite(rightWallclock) && leftWallclock !== rightWallclock) return leftWallclock - rightWallclock;
     return left.index - right.index;
   });
 }
@@ -39,7 +39,11 @@ function expectancyForPlay(play, dukeName, opponentName) {
   const remaining = timeRemaining(play);
   const scale = 6 + (18 * remaining / 3600);
   const possession = sameTeam(play.offense, dukeName) ? 0.18 : sameTeam(play.offense, opponentName) ? -0.18 : 0;
-  const probability = 1 / (1 + Math.exp(-((dukeScore - opponentScore) / scale + possession)));
+  const yardsToGoal = number(play.yardsToGoal);
+  const fieldPosition = yardsToGoal != null && yardsToGoal >= 0 && yardsToGoal <= 100
+    ? (50 - yardsToGoal) / 50 * (sameTeam(play.offense, dukeName) ? 0.25 : sameTeam(play.offense, opponentName) ? -0.25 : 0)
+    : 0;
+  const probability = 1 / (1 + Math.exp(-((dukeScore - opponentScore) / scale + possession + fieldPosition)));
   return {
     probability,
     expectancy: Math.max(-50, Math.min(50, (probability - 0.5) * 100)),
@@ -58,14 +62,20 @@ export function calculateWinExpectancySnapshots({
 } = {}) {
   const snapshots = [{ progress: 0, expectancy: 0, probability: 0.5, label: 'Kickoff' }];
   const gamePlays = orderedPlays(plays);
+  let lastProgress = 0;
   for (const { play } of gamePlays) {
     const result = expectancyForPlay(play, dukeName, opponentName);
     if (!result) continue;
     const remaining = timeRemaining(play);
-    snapshots.push({
+    const snapshot = {
       ...result,
       progress: 1 - (remaining / 3600),
-    });
+    };
+    if (snapshot.progress < lastProgress) continue;
+    if (snapshot.progress === 0 && snapshots.length === 1) continue;
+    if (snapshot.progress === lastProgress) snapshots[snapshots.length - 1] = snapshot;
+    else snapshots.push(snapshot);
+    lastProgress = snapshot.progress;
   }
 
   const finalDukeScore = number(dukeScore);
@@ -74,12 +84,14 @@ export function calculateWinExpectancySnapshots({
     const finalExpectancy = finalDukeScore === finalOpponentScore
       ? 0
       : finalDukeScore > finalOpponentScore ? 50 : -50;
-    snapshots.push({
+    const finalSnapshot = {
       progress: 1,
       expectancy: finalExpectancy,
       probability: finalExpectancy > 0 ? 1 : finalExpectancy < 0 ? 0 : 0.5,
       label: 'Final',
-    });
+    };
+    if (snapshots.at(-1)?.progress === 1) snapshots[snapshots.length - 1] = finalSnapshot;
+    else snapshots.push(finalSnapshot);
   }
 
   return snapshots;
@@ -110,6 +122,7 @@ export function renderWinExpectancySvg(snapshots, { width = 720, height = 300 } 
     <line x1="${margin.left}" y1="${y(50)}" x2="${width - margin.right}" y2="${y(50)}" stroke="#d9d2c3" stroke-width="1"/>
     <line x1="${margin.left}" y1="${midpoint}" x2="${width - margin.right}" y2="${midpoint}" stroke="#101820" stroke-width="1.5"/>
     <line x1="${margin.left}" y1="${y(-50)}" x2="${width - margin.right}" y2="${y(-50)}" stroke="#d9d2c3" stroke-width="1"/>
+    ${[0.25, 0.5, 0.75].map((progress, index) => `<line x1="${x(progress)}" y1="${margin.top}" x2="${x(progress)}" y2="${height - margin.bottom}" stroke="#d9d2c3" stroke-width="1" stroke-dasharray="3 4"/><text x="${x(progress)}" y="${height - 10}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#607080">Q${index + 2}</text>`).join('')}
     <text x="${margin.left - 8}" y="${y(50) + 4}" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#003087">DUKE</text>
     <text x="${margin.left - 8}" y="${midpoint + 4}" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#607080">50/50</text>
     <text x="${margin.left - 8}" y="${y(-50) + 4}" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="#8b2f2f">OPP.</text>
