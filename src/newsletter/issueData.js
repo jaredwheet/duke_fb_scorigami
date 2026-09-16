@@ -61,10 +61,54 @@ function getQuarterRows(plays, dukeName, opponentName, dukeScore, opponentScore)
   ];
 }
 
+function formatPlayerName(value) {
+  const name = String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\(.*$/, '')
+    .trim();
+  if (!name) return null;
+  if (name === name.toUpperCase() || name === name.toLowerCase()) {
+    return name.toLowerCase().replace(/(^|[\s'-])([a-z])/g, (_, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
+  }
+  return name;
+}
+
+function playerField(play, fields) {
+  for (const field of fields) {
+    const value = play[field];
+    const name = typeof value === 'object' ? value?.name : value;
+    const formatted = formatPlayerName(name);
+    if (formatted) return formatted;
+  }
+  return null;
+}
+
 function compactScoringDescription(play) {
   const text = play.playText || '';
   const fieldGoalYards = text.match(/field goal attempt from (\d+) yards/i)?.[1];
-  if (fieldGoalYards) return `Field goal, ${fieldGoalYards} yards`;
+  const guideFieldGoal = text.match(/^(.+?)\s+(\d+)\s*Yd\s+Field Goal/i);
+  const fieldGoalPlayer = formatPlayerName(guideFieldGoal?.[1]) || playerField(play, ['kicker', 'kickerName', 'scorer', 'player', 'athlete']);
+  if (fieldGoalYards || guideFieldGoal) {
+    const yards = fieldGoalYards || guideFieldGoal[2];
+    return fieldGoalPlayer ? `${fieldGoalPlayer}, ${yards}-yard field goal` : `Field goal, ${yards} yards`;
+  }
+
+  const passTouchdown = text.match(/^(.+?)\s+pass(?:es|ed)?(?:\s+complete)?\s+to\s+(.+?)\s+for\s+(\d+)\s+yards?.*touchdown/i);
+  const guidePassTouchdown = text.match(/^(.+?)\s+(\d+)\s*Yd\s+Pass from\s+(.+?)(?:\s*\(|$)/i);
+  if (passTouchdown || guidePassTouchdown) {
+    const receiver = formatPlayerName(passTouchdown?.[2] || guidePassTouchdown?.[1]);
+    const passer = formatPlayerName(passTouchdown?.[1] || guidePassTouchdown?.[3]);
+    const yards = passTouchdown?.[3] || guidePassTouchdown?.[2];
+    if (passer && receiver) return `${passer} to ${receiver}, ${yards}-yard touchdown`;
+  }
+
+  const rushTouchdown = text.match(/^(.+?)\s+(\d+)\s*Yd\s+(?:Rush|Run)/i)
+    || text.match(/^(.+?)\s+(?:rush|runs?)\s+for\s+(\d+)\s+yards?.*touchdown/i);
+  if (rushTouchdown) {
+    const rusher = formatPlayerName(rushTouchdown[1]) || playerField(play, ['rusher', 'scorer', 'player', 'athlete']);
+    const yards = rushTouchdown[2];
+    if (rusher) return `${rusher}, ${yards}-yard touchdown run`;
+  }
 
   const touchdownYards = text.match(/for (\d+) yards.*?touchdown/i)?.[1];
   if (touchdownYards) {
