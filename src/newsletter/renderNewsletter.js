@@ -155,7 +155,6 @@ function buildGuideSections(context = null) {
     blocks.push(`
       <mj-section background-color="#f8f4ea" padding="20px 24px 18px">
         <mj-column>
-          <mj-text font-size="12px" letter-spacing="3px" font-weight="700">FROM THE DUKE RECORD</mj-text>
           ${facts.map((fact) => `
             <mj-text font-size="11px" line-height="1.2" letter-spacing="2px" font-weight="700" padding-top="16px">${escapeHtml(fact.label)}</mj-text>
             <mj-text font-size="14px" line-height="1.45" padding-top="5px">${escapeHtml(fact.detail)}</mj-text>

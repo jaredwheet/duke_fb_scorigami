@@ -20,6 +20,8 @@ const editorialResult = deterministicIssueData.current_score
   : null;
 const issueData = editorialResult?.issueData || deterministicIssueData;
 if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
+console.log(`Deterministic moment: ${deterministicIssueData.guide_context?.editorialMoment || deterministicIssueData.turning_point?.description || 'none'}`);
+console.log(`Rendered moment: ${issueData.guide_context?.editorialMoment || 'none'}`);
 const chartBuffer = issueData.win_expectancy?.snapshots?.length > 1
   ? await renderWinExpectancyChart(issueData.win_expectancy.snapshots)
   : null;

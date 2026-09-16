@@ -80,7 +80,10 @@ export function calculateWinExpectancySnapshots({
     };
     if (snapshot.progress < lastProgress) continue;
     if (snapshot.progress === 0 && snapshots.length === 1) continue;
-    if (snapshot.progress === lastProgress) snapshots[snapshots.length - 1] = snapshot;
+    if (snapshot.progress === lastProgress) {
+      const previous = snapshots[snapshots.length - 1];
+      if (!previous.play?.scoring || snapshot.play?.scoring) snapshots[snapshots.length - 1] = snapshot;
+    }
     else snapshots.push(snapshot);
     lastProgress = snapshot.progress;
   }
