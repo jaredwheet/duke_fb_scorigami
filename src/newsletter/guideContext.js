@@ -44,13 +44,19 @@ export function buildOpponentHistory({ guide, opponent, season, dukeScore = null
     : display.dukeWins > display.dukeLosses
       ? `Duke leads the series ${record}.`
       : `Duke trails the series ${record}.`;
+  const updatedLead = display.dukeWins === display.dukeLosses
+    ? `The series is now tied ${record}.`
+    : display.dukeWins > display.dukeLosses
+      ? `Duke now leads the series ${record}.`
+      : `Duke now trails the series ${record}.`;
+  const statement = display.throughSeason > series.throughSeason ? updatedLead : lead;
 
   return {
     opponent: series.opponent,
     record,
     throughSeason: display.throughSeason,
     guideThroughSeason: series.throughSeason,
-    statement: `${lead} The guide tracks the series through ${series.throughSeason}${display.throughSeason > series.throughSeason ? `; this result brings it through ${display.throughSeason}` : ''}.`,
+    statement,
     citation: { edition: guide.edition, ...guide.citations[series.citationId] },
   };
 }

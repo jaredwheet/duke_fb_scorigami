@@ -78,7 +78,8 @@ test('applies the current meeting to a guide series only after the guide cutoff'
   });
 
   expect(result).toMatchObject({ record: '45-37-5', throughSeason: 2026 });
-  expect(result.statement).toContain('Duke leads');
+  expect(result.statement).toContain('Duke now leads');
+  expect(result.statement).not.toContain('guide tracks');
 });
 
 test('builds a complete season-preview data contract', () => {
