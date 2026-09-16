@@ -7,6 +7,7 @@ test('renders the Sunday MJML template into HTML', async () => {
   });
 
   expect(html).toContain('A test headline');
-  expect(html).toContain('Duke 24, Virginia 10');
-  expect(html).toContain('VIEW THE FULL SCORE HISTORY');
+  expect(html).toContain('31');
+  expect(html).toContain('SCORIGAMI WATCH');
+  expect(html).toContain('NEXT UP');
 });

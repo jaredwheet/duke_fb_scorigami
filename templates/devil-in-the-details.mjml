@@ -6,54 +6,111 @@
       <mj-all font-family="Courier New, Courier, monospace" color="#101820" />
       <mj-text padding="0" />
       <mj-section padding="0" />
+      <mj-table padding="0" />
     </mj-attributes>
     <mj-style inline="inline">
+      .serif { font-family: Georgia, 'Times New Roman', serif; }
+      .mono { font-family: 'Courier New', Courier, monospace; }
       .rule { border-top: 3px solid #101820; }
       .subrule { border-top: 1px solid #101820; }
       .stat { font-variant-numeric: tabular-nums; }
     </mj-style>
   </mj-head>
-  <mj-body background-color="#e9e3d5">
-    <mj-section background-color="#f8f4ea" padding="26px 24px 10px">
+  <mj-body background-color="#d9d2c3">
+    <mj-section background-color="#f8f4ea" padding="28px 24px 12px">
       <mj-column>
-        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">DUKE FOOTBALL DISPATCH</mj-text>
-        <mj-text font-size="34px" line-height="1.05" font-weight="800" padding-top="10px">DEVIL IN THE DETAILS</mj-text>
-        <mj-text font-size="12px" padding-top="10px">{{issue_date}} · EDITION {{issue_number}}</mj-text>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="42px" line-height="1" font-weight="800" letter-spacing="-1px">DEVIL IN THE DETAILS</mj-text>
+        <mj-text font-size="11px" letter-spacing="2px" padding-top="12px">{{issue_date}} | VOL. 1, ISSUE {{issue_number}}</mj-text>
       </mj-column>
     </mj-section>
 
-    <mj-section background-color="#f8f4ea" padding="14px 24px">
+    <mj-section background-color="#f8f4ea" padding="10px 24px 4px">
       <mj-column>
-        <mj-divider border-color="#101820" border-width="3px" padding="0" />
+        <mj-divider border-color="#101820" border-width="4px" padding="0" />
+        <mj-divider border-color="#101820" border-width="1px" padding="5px 0 0" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="20px 24px 24px">
+      <mj-column>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="31px" line-height="1.1" font-weight="800">{{headline}}</mj-text>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="17px" line-height="1.35" font-weight="700" padding-top="12px">{{subheadline}}</mj-text>
+        <mj-text font-size="15px" line-height="1.55" padding-top="12px">{{narrative}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#101820" padding="18px 24px 22px">
+      <mj-column>
+        <mj-text color="#e9e3d5" font-size="12px" letter-spacing="3px" font-weight="700">THE CLASSIC BOX SCORE</mj-text>
+        <mj-table color="#f8f4ea" font-size="13px" line-height="1.5" padding-top="12px" css-class="stat">
+          <tr style="border-bottom:1px solid #607080;">
+            <th align="left" style="padding:6px 4px;">TEAM</th>
+            <th align="right" style="padding:6px 4px;">Q1</th>
+            <th align="right" style="padding:6px 4px;">Q2</th>
+            <th align="right" style="padding:6px 4px;">Q3</th>
+            <th align="right" style="padding:6px 4px;">Q4</th>
+            <th align="right" style="padding:6px 4px;">FINAL</th>
+          </tr>
+          {{quarter_rows}}
+        </mj-table>
+        <mj-text color="#e9e3d5" font-size="11px" letter-spacing="2px" font-weight="700" padding-top="20px">SCORING SUMMARY</mj-text>
+        <mj-table color="#f8f4ea" font-size="12px" line-height="1.45" padding-top="8px" css-class="stat">{{scoring_rows}}</mj-table>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#f8f4ea" padding="24px 18px 10px">
+      <mj-column>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700" padding-left="6px">THREE NUMBERS THAT TELL THE STORY</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#f8f4ea" padding="8px 18px 24px">
+      <mj-column width="33.33%" padding="0 6px">
+        <mj-text align="center" font-family="Georgia, 'Times New Roman', serif" font-size="38px" font-weight="800">{{number_one_value}}</mj-text>
+        <mj-text align="center" font-size="11px" letter-spacing="1px" font-weight="700" padding-top="4px">{{number_one_label}}</mj-text>
+        <mj-text align="center" font-size="11px" line-height="1.35" padding-top="6px">{{number_one_detail}}</mj-text>
+      </mj-column>
+      <mj-column width="33.33%" padding="0 6px" border-left="1px solid #101820" border-right="1px solid #101820">
+        <mj-text align="center" font-family="Georgia, 'Times New Roman', serif" font-size="38px" font-weight="800">{{number_two_value}}</mj-text>
+        <mj-text align="center" font-size="11px" letter-spacing="1px" font-weight="700" padding-top="4px">{{number_two_label}}</mj-text>
+        <mj-text align="center" font-size="11px" line-height="1.35" padding-top="6px">{{number_two_detail}}</mj-text>
+      </mj-column>
+      <mj-column width="33.33%" padding="0 6px">
+        <mj-text align="center" font-family="Georgia, 'Times New Roman', serif" font-size="38px" font-weight="800">{{number_three_value}}</mj-text>
+        <mj-text align="center" font-size="11px" letter-spacing="1px" font-weight="700" padding-top="4px">{{number_three_label}}</mj-text>
+        <mj-text align="center" font-size="11px" line-height="1.35" padding-top="6px">{{number_three_detail}}</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#f8f4ea" padding="8px 24px 24px">
       <mj-column>
-        <mj-text font-size="25px" line-height="1.15" font-weight="800">{{headline}}</mj-text>
-        <mj-text font-size="15px" line-height="1.5" padding-top="12px">{{dek}}</mj-text>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">PLAYER LEADERS</mj-text>
+        <mj-table font-size="12px" line-height="1.45" padding-top="10px" css-class="stat">{{passing_rows}}{{rushing_rows}}{{receiving_rows}}{{defense_rows}}</mj-table>
       </mj-column>
     </mj-section>
 
-    <mj-section background-color="#101820" padding="18px 24px">
+    <mj-section background-color="#003087" padding="20px 24px">
       <mj-column>
-        <mj-text color="#f8f4ea" font-size="12px" letter-spacing="2px" font-weight="700">THE BOX SCORE</mj-text>
-        <mj-text color="#f8f4ea" font-size="16px" line-height="1.6" padding-top="10px" css-class="stat">{{box_score_rows}}</mj-text>
+        <mj-text color="#ffffff" font-size="12px" letter-spacing="3px" font-weight="700">SCORIGAMI WATCH</mj-text>
+        <mj-text color="#ffffff" font-family="Georgia, 'Times New Roman', serif" font-size="27px" line-height="1.1" font-weight="800" padding-top="10px">{{scorigami_status}}</mj-text>
+        <mj-text color="#ffffff" font-size="14px" line-height="1.5" padding-top="10px">{{scorigami_context}}</mj-text>
       </mj-column>
     </mj-section>
 
     <mj-section background-color="#f8f4ea" padding="24px">
       <mj-column>
-        <mj-text font-size="12px" letter-spacing="2px" font-weight="700">THE RECEIPTS</mj-text>
-        <mj-text font-size="15px" line-height="1.55" padding-top="10px">{{analysis}}</mj-text>
-        <mj-button background-color="#003087" color="#ffffff" font-family="Courier New, Courier, monospace" font-size="13px" border-radius="0" padding-top="18px" href="{{source_url}}">VIEW THE FULL SCORE HISTORY</mj-button>
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700">AROUND THE ACC</mj-text>
+        <mj-table font-size="12px" line-height="1.45" padding-top="10px" css-class="stat">{{acc_rows}}</mj-table>
       </mj-column>
     </mj-section>
 
-    <mj-section background-color="#f8f4ea" padding="10px 24px 30px">
+    <mj-section background-color="#f8f4ea" padding="8px 24px 24px">
       <mj-column>
-        <mj-divider border-color="#101820" border-width="1px" padding="0" />
-        <mj-text font-size="11px" line-height="1.5" padding-top="12px">{{footer_text}}</mj-text>
+        <mj-divider border-color="#101820" border-width="3px" padding="0" />
+        <mj-text font-size="12px" letter-spacing="3px" font-weight="700" padding-top="18px">NEXT UP</mj-text>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="24px" font-weight="800" padding-top="8px">{{next_opponent}}</mj-text>
+        <mj-text font-size="13px" line-height="1.5" padding-top="8px">{{next_details}}</mj-text>
+        <mj-text align="center" font-size="11px" padding-top="28px">— END OF ISSUE —</mj-text>
+        <mj-text align="center" font-size="10px" line-height="1.5" padding-top="16px">{{footer_text}}<br /><a href="{{unsubscribe_url}}" style="color:#101820;">Unsubscribe</a> | <a href="{{preferences_url}}" style="color:#101820;">Manage preferences</a></mj-text>
       </mj-column>
     </mj-section>
   </mj-body>
