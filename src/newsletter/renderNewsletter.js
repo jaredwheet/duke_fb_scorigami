@@ -74,7 +74,7 @@ function buildAccRows(rows = []) {
   const results = rows?.results || [];
   const standingsRows = standings.map((row) => `
     <tr style="border-bottom:1px solid #b5ad9f;">
-      <td style="padding:5px 4px;">${escapeHtml(row.team)}</td>
+      <td style="padding:5px 4px;">${escapeHtml(row.rank ? `#${row.rank} ${row.team}` : row.team)}</td>
       <td align="right" style="padding:5px 4px;">${escapeHtml(row.conferenceRecord)}</td>
       <td align="right" style="padding:5px 4px;font-weight:700;">${escapeHtml(row.overallRecord)}</td>
     </tr>

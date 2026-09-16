@@ -1,4 +1,4 @@
-import { fetchCfbDataConferenceRecords, fetchCfbDataWeekGames } from '../ingestion/providers/cfbData.js';
+import { fetchCfbDataConferenceRecords, fetchCfbDataRankings, fetchCfbDataWeekGames } from '../ingestion/providers/cfbData.js';
 
 function recordText(record) {
   if (!record) return '—';
@@ -6,11 +6,20 @@ function recordText(record) {
   return `${record.wins ?? 0}-${record.losses ?? 0}${ties ? `-${ties}` : ''}`;
 }
 
-function normalizeRecord(record) {
+function buildRankingsMap(rankings) {
+  const poll = rankings
+    .flatMap((week) => week.polls || [])
+    .find((candidate) => candidate.poll === 'AP Top 25')
+    || rankings.flatMap((week) => week.polls || [])[0];
+  return new Map((poll?.ranks || []).map((rank) => [rank.school, rank.rank]));
+}
+
+function normalizeRecord(record, rankingsMap) {
   const conference = record.conferenceGames || record.conferenceRecord || {};
   const overall = record.total || {};
   return {
     team: record.team,
+    rank: rankingsMap.get(record.team) || null,
     conference: record.conference || 'ACC',
     conferenceRecord: recordText(conference),
     overallRecord: recordText(overall),
@@ -25,10 +34,11 @@ function isAccGame(game) {
   return game.homeConference === 'ACC' || game.awayConference === 'ACC';
 }
 
-export function normalizeAccContext({ records = [], games = [], currentGameId = null } = {}) {
+export function normalizeAccContext({ records = [], games = [], rankings = [], currentGameId = null } = {}) {
+  const rankingsMap = buildRankingsMap(rankings);
   const standings = records
     .filter((record) => record.conference === 'ACC')
-    .map(normalizeRecord)
+    .map((record) => normalizeRecord(record, rankingsMap))
     .sort((left, right) => right.conferenceWins - left.conferenceWins
       || left.conferenceLosses - right.conferenceLosses
       || right.overallWins - left.overallWins
@@ -63,11 +73,13 @@ export async function loadAccContext({
   apiKey = process.env.CFB_DATA_KEY,
   gamesFetcher = fetchCfbDataWeekGames,
   recordsFetcher = fetchCfbDataConferenceRecords,
+  rankingsFetcher = fetchCfbDataRankings,
 } = {}) {
   if (!apiKey || week == null) return null;
-  const [games, records] = await Promise.all([
+  const [games, records, rankings] = await Promise.all([
     gamesFetcher({ year: season, week, apiKey }),
     recordsFetcher({ year: season, apiKey }),
+    rankingsFetcher({ year: season, week, apiKey }),
   ]);
-  return normalizeAccContext({ games, records, currentGameId });
+  return normalizeAccContext({ games, records, rankings, currentGameId });
 }

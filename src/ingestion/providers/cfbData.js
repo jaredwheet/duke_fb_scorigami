@@ -59,6 +59,24 @@ export async function fetchCfbDataConferenceRecords({
   return records;
 }
 
+export async function fetchCfbDataRankings({
+  year = new Date().getFullYear(),
+  week,
+  seasonType = 'regular',
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey) throw new Error('CFB_DATA_KEY is required for rankings data');
+  if (week == null) throw new Error('A week is required for rankings data');
+
+  const url = new URL('https://api.collegefootballdata.com/rankings');
+  url.searchParams.set('year', String(year));
+  url.searchParams.set('week', String(week));
+  url.searchParams.set('seasonType', seasonType);
+  const rankings = await fetchJson(url, apiKey);
+  if (!Array.isArray(rankings)) throw new Error('CFBData rankings response was not an array');
+  return rankings;
+}
+
 async function fetchOptionalEndpoint(url, apiKey) {
   try {
     return { data: await fetchJson(url, apiKey), error: null };
