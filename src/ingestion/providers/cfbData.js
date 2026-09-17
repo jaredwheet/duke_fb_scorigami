@@ -114,6 +114,37 @@ export async function fetchCfbDataTeamGameStats({
   return stats;
 }
 
+export async function fetchCfbDataTeamRecords({
+  year,
+  team,
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey || !team) return [];
+  const url = new URL('https://api.collegefootballdata.com/records');
+  url.searchParams.set('year', String(year));
+  url.searchParams.set('team', team);
+  const records = await fetchJson(url, apiKey);
+  if (!Array.isArray(records)) throw new Error('CFBData records response was not an array');
+  return records;
+}
+
+export async function fetchCfbDataPlayerSeasonStats({
+  year,
+  team,
+  endWeek,
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey || !team) return [];
+  const url = new URL('https://api.collegefootballdata.com/stats/player/season');
+  url.searchParams.set('year', String(year));
+  url.searchParams.set('team', team);
+  url.searchParams.set('seasonType', 'regular');
+  if (endWeek != null) url.searchParams.set('endWeek', String(endWeek));
+  const stats = await fetchJson(url, apiKey);
+  if (!Array.isArray(stats)) throw new Error('CFBData player season stats response was not an array');
+  return stats;
+}
+
 export async function fetchCfbDataConferenceRecords({
   year = new Date().getFullYear(),
   conference = 'ACC',

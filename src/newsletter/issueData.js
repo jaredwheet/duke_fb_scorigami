@@ -1,12 +1,9 @@
 import { calculateWinExpectancySnapshots, findLargestWinExpectancySwing } from './winExpectancy.js';
-
-function isDuke(team) {
-  return team?.slug === 'duke' || team?.name?.toLowerCase() === 'duke';
-}
+import { isDukeTeam } from '../teamUtils.js';
 
 function getScoreDetails(game, participants) {
-  const duke = participants.find((participant) => isDuke(participant.team));
-  const opponent = participants.find((participant) => !isDuke(participant.team));
+  const duke = participants.find((participant) => isDukeTeam(participant.team));
+  const opponent = participants.find((participant) => !isDukeTeam(participant.team));
   return {
     dukeScore: duke?.score ?? null,
     opponentScore: opponent?.score ?? null,
@@ -546,7 +543,7 @@ export function buildSundayIssueData({
   watercoolerContext = null,
 }) {
   const scores = getScoreDetails(game, participants);
-  const dukeName = participants.find((participant) => isDuke(participant.team))?.team?.name || 'Duke';
+  const dukeName = participants.find((participant) => isDukeTeam(participant.team))?.team?.name || 'Duke';
   const plays = detailsPayload?.plays || [];
   const quarterRows = getQuarterRows(
     plays,
@@ -575,7 +572,7 @@ export function buildSundayIssueData({
   const turningPoint = getTurningPoint(plays, dukeName, scores.opponent, playerNames, largestWinExpectancySwing);
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
   const nextDetails = formatNextDetails(nextGame, nextSchedule);
-  const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
+  const nextOpponent = nextParticipants.find((participant) => !isDukeTeam(participant.team))?.team?.name || 'Next opponent TBD';
 
   return {
     publication_key: 'devil-in-details',
@@ -596,7 +593,7 @@ export function buildSundayIssueData({
     issue_number: String(game.season),
     ...buildLeadCopy({
       ...scores,
-      dukeRole: participants.find((participant) => isDuke(participant.team))?.role,
+      dukeRole: participants.find((participant) => isDukeTeam(participant.team))?.role,
       turnoverNumber,
       summaryStats,
     }),

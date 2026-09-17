@@ -6,6 +6,8 @@ import {
   fetchCfbDataPregameWinProbabilities,
   fetchCfbDataSeasonStats,
   fetchCfbDataTeamGameStats,
+  fetchCfbDataTeamRecords,
+  fetchCfbDataPlayerSeasonStats,
 } from '../ingestion/providers/cfbData.js';
 import { fetchOddsApiSnapshot } from '../ingestion/providers/enrichments.js';
 import { loadAccContext } from './accData.js';
@@ -14,10 +16,7 @@ import { buildSundayIssueData } from './issueData.js';
 import { findUpcomingOdds } from './odds.js';
 import { buildBulletinContext, findCfbDataOdds } from './bulletinData.js';
 import { loadWatercoolerContext } from './watercoolerData.js';
-
-function isDuke(participant) {
-  return participant?.team?.slug === 'duke' || participant?.team?.name?.toLowerCase() === 'duke';
-}
+import { isDukeTeam } from '../teamUtils.js';
 
 async function loadParticipants(client, gameId) {
   const [{ data: participants, error: participantError }, { data: teams, error: teamError }] = await Promise.all([
@@ -77,8 +76,8 @@ async function loadScorigamiHistory(client, currentGame, scoreFacts) {
 
   return games.flatMap((game) => {
     const gameParticipants = participantsByGame.get(game.id) || [];
-    const duke = gameParticipants.find((participant) => participant.team?.slug === 'duke');
-    const opponent = gameParticipants.find((participant) => participant.team?.slug !== 'duke');
+    const duke = gameParticipants.find((participant) => isDukeTeam(participant.team));
+    const opponent = gameParticipants.find((participant) => !isDukeTeam(participant.team));
     if (!duke || !opponent || duke.score == null || opponent.score == null) return [];
     if (scorePair(duke.score, opponent.score) !== scoreFacts.scorePair) return [];
     const cityState = [game.city, game.state].filter(Boolean).join(', ');
@@ -137,14 +136,18 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
   let bulletinContext = null;
   if (includeBulletin && nextGame && process.env.CFB_DATA_KEY) {
     try {
-      const opponent = nextParticipants.find((participant) => !isDuke(participant.team));
-      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats] = await Promise.all([
+      const opponent = nextParticipants.find((participant) => !isDukeTeam(participant.team));
+      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats, dukeRecord, opponentRecord, dukePlayerStats, opponentPlayerStats] = await Promise.all([
         fetchCfbDataLines({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataPregameWinProbabilities({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
         fetchCfbDataSeasonStats({ year: nextGame.season, team: opponent?.team?.name, endWeek: Math.max(1, nextGame.week - 1) }),
         fetchCfbDataTeamGameStats({ year: nextGame.season, team: 'Duke' }),
         fetchCfbDataTeamGameStats({ year: nextGame.season, team: opponent?.team?.name }),
+        fetchCfbDataTeamRecords({ year: nextGame.season, team: 'Duke' }),
+        fetchCfbDataTeamRecords({ year: nextGame.season, team: opponent?.team?.name }),
+        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
+        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: opponent?.team?.name, endWeek: Math.max(1, nextGame.week - 1) }),
       ]);
       odds = findCfbDataOdds(lines, {
         opponentName: opponent?.team?.name,
@@ -155,6 +158,10 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
         opponentSeasonStats,
         dukeGameStats,
         opponentGameStats,
+        dukeRecord,
+        opponentRecord,
+        dukePlayerStats,
+        opponentPlayerStats,
         lines,
         pregameProbabilities,
       });

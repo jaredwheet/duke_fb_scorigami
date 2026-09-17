@@ -35,18 +35,6 @@ function buildSectionRows(sections = []) {
   }).join('');
 }
 
-function buildMatchupImageSection(source) {
-  if (!source) return '';
-  return `
-    <mj-section background-color="#f8f4ea" padding="8px 24px 18px">
-      <mj-column>
-        <mj-image src="${escapeHtml(source)}" alt="Duke and opponent season comparison" padding="0" />
-        <mj-text align="center" font-size="10px" color="#607080" padding-top="6px">Season-to-date comparison from the configured statistical feed.</mj-text>
-      </mj-column>
-    </mj-section>
-  `;
-}
-
 export async function renderBriefNewsletter(data = {}) {
   const template = await readFile(templatePath, 'utf8');
   const values = {
@@ -58,12 +46,11 @@ export async function renderBriefNewsletter(data = {}) {
     subheadline: data.subheadline || '',
     brief_lead: data.brief_lead || '',
     section_rows: buildSectionRows(data.brief_sections),
-    matchup_image_section: buildMatchupImageSection(data.matchupImageSource),
     footer_text: data.footer_text || 'A quick read on Duke football.',
     unsubscribe_url: data.unsubscribe_url || 'https://example.com/unsubscribe',
     preferences_url: data.preferences_url || 'https://example.com/preferences',
   };
-  const rendered = template.replace(/\{\{([a-z_]+)\}\}/g, (_, key) => ['section_rows', 'matchup_image_section'].includes(key) ? values[key] : escapeHtml(values[key]));
+  const rendered = template.replace(/\{\{([a-z_]+)\}\}/g, (_, key) => key === 'section_rows' ? values[key] : escapeHtml(values[key]));
   const result = await mjml2html(rendered, { validationLevel: 'strict' });
   if (result.errors?.length) throw new Error(`Brief newsletter template validation failed: ${result.errors.map((error) => error.message).join('; ')}`);
   return result.html;

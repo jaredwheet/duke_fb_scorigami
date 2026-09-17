@@ -48,7 +48,7 @@ function oneDecimal(value) {
   return value == null ? null : value.toFixed(1).replace(/\.0$/, '');
 }
 
-function teamSummary(teamName, seasonStats, gameStats) {
+function teamSummary(teamName, seasonStats, gameStats, recordOverride = null) {
   const rows = teamGameRows(gameStats, teamName);
   const stats = statMap(seasonStats);
   const games = rows.length || findStat(stats, ['games', 'gamesPlayed']) || 0;
@@ -69,6 +69,13 @@ function teamSummary(teamName, seasonStats, gameStats) {
   const firstDowns = average(rows.map((row) => findStat(row.team, ['firstdowns'])))
     ?? (seasonFirstDowns == null ? null : seasonFirstDowns / Math.max(games, 1));
   const yardsAllowed = average(rows.map((row) => findStat(row.opponent, ['totalyards', 'totaloffense'])));
+  const rushYardsAllowed = average(rows.map((row) => findStat(row.opponent, ['rushingyards', 'rushing'])));
+  const passYardsAllowed = average(rows.map((row) => findStat(row.opponent, ['passingyards', 'passing'])));
+  const turnoverMargin = average(rows.map((row) => {
+    const teamTurnovers = findStat(row.team, ['turnovers', 'turnover']);
+    const opponentTurnovers = findStat(row.opponent, ['turnovers', 'turnover']);
+    return teamTurnovers == null || opponentTurnovers == null ? null : opponentTurnovers - teamTurnovers;
+  }));
   const wins = rows.filter((row) => row.points != null && row.opponentPoints != null && row.points > row.opponentPoints).length;
   const losses = rows.filter((row) => row.points != null && row.opponentPoints != null && row.points < row.opponentPoints).length;
   const ties = rows.filter((row) => row.points != null && row.opponentPoints != null && row.points === row.opponentPoints).length;
@@ -83,8 +90,57 @@ function teamSummary(teamName, seasonStats, gameStats) {
     passingYards,
     firstDowns,
     yardsAllowed,
-    record: rows.length > 0 ? `${wins}-${losses}${ties > 0 ? `-${ties}` : ''}` : null,
+    rushYardsAllowed,
+    passYardsAllowed,
+    turnoverMargin,
+    record: recordOverride || (rows.length > 0 ? `${wins}-${losses}${ties > 0 ? `-${ties}` : ''}` : null),
   };
+}
+
+function recordFromApi(records, teamName) {
+  const row = (records || []).find((record) => {
+    const team = normalize(record.team);
+    const target = normalize(teamName);
+    return team === target || team.includes(target) || target.includes(team);
+  });
+  const total = row?.total;
+  if (!total || total.wins == null || total.losses == null) return null;
+  return `${total.wins}-${total.losses}${total.ties > 0 ? `-${total.ties}` : ''}`;
+}
+
+function keyPlayerRows(stats = [], teamName) {
+  const players = new Map();
+  for (const row of stats) {
+    const player = row.player || row.name;
+    if (!player || row.stat == null) continue;
+    const key = row.playerId || player;
+    const value = number(row.stat);
+    if (value == null) continue;
+    const category = String(row.category || 'football').replaceAll('_', ' ');
+    const statType = String(row.statType || 'stat').replaceAll('_', ' ');
+    const list = players.get(key) || { player, teamName, entries: [] };
+    list.entries.push({ category, statType, value });
+    players.set(key, list);
+  }
+  const categoryOrder = ['rushing', 'passing', 'receiving', 'defensive', 'tackles'];
+  return [...players.values()]
+    .map((player) => {
+      const entry = player.entries
+        .slice()
+        .sort((left, right) => {
+          const leftRank = categoryOrder.findIndex((category) => left.category.toLowerCase().includes(category));
+          const rightRank = categoryOrder.findIndex((category) => right.category.toLowerCase().includes(category));
+          return (leftRank < 0 ? 99 : leftRank) - (rightRank < 0 ? 99 : rightRank) || right.value - left.value;
+        })[0];
+      return {
+        label: `${player.teamName.toUpperCase()} - ${player.player}`,
+        value: `${entry.category} ${entry.statType}: ${oneDecimal(entry.value)}`,
+        score: entry.value,
+      };
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3)
+    .map(({ label, value }) => ({ label, value }));
 }
 
 function formatTeamSummary(summary) {
@@ -114,9 +170,13 @@ export function findCfbDataOdds(lines = [], { dukeName = 'Duke', opponentName } 
   if (line.overUnder != null) details.push(`total ${line.overUnder}`);
   if (details.length === 0) return null;
 
-  const dukeImplied = dukeMoneyline < 0 ? (-dukeMoneyline) / ((-dukeMoneyline) + 100) : 100 / (dukeMoneyline + 100);
-  const opponentImplied = opponentMoneyline < 0 ? (-opponentMoneyline) / ((-opponentMoneyline) + 100) : 100 / (opponentMoneyline + 100);
-  const noVigProbability = Number.isFinite(dukeImplied) && Number.isFinite(opponentImplied)
+  const dukeImplied = Number.isFinite(Number(dukeMoneyline))
+    ? dukeMoneyline < 0 ? (-dukeMoneyline) / ((-dukeMoneyline) + 100) : 100 / (dukeMoneyline + 100)
+    : null;
+  const opponentImplied = Number.isFinite(Number(opponentMoneyline))
+    ? opponentMoneyline < 0 ? (-opponentMoneyline) / ((-opponentMoneyline) + 100) : 100 / (opponentMoneyline + 100)
+    : null;
+  const noVigProbability = dukeImplied != null && opponentImplied != null
     ? Math.round((dukeImplied / (dukeImplied + opponentImplied)) * 100)
     : null;
   return {
@@ -141,11 +201,15 @@ export function buildBulletinContext({
   opponentSeasonStats = [],
   dukeGameStats = [],
   opponentGameStats = [],
+  dukeRecord = [],
+  opponentRecord = [],
+  dukePlayerStats = [],
+  opponentPlayerStats = [],
   lines = [],
   pregameProbabilities = [],
 } = {}) {
-  const duke = teamSummary(dukeName, dukeSeasonStats, dukeGameStats);
-  const opponent = teamSummary(opponentName, opponentSeasonStats, opponentGameStats);
+  const duke = teamSummary(dukeName, dukeSeasonStats, dukeGameStats, recordFromApi(dukeRecord, dukeName));
+  const opponent = teamSummary(opponentName, opponentSeasonStats, opponentGameStats, recordFromApi(opponentRecord, opponentName));
   const odds = findCfbDataOdds(lines, { dukeName, opponentName });
   const probability = pregameProbabilities.find((game) => {
     const teams = [game.homeTeam, game.awayTeam].map(normalize);
@@ -164,13 +228,20 @@ export function buildBulletinContext({
   if (duke.passingYards != null) strengths.push(`${dukeName} is averaging ${oneDecimal(duke.passingYards)} passing yards per game`);
   if (opponent.rushingYards != null) strengths.push(`${opponentName} is averaging ${oneDecimal(opponent.rushingYards)} rushing yards per game`);
 
-  const seasonRows = [
+  const offenseRows = [
     { label: 'POINTS / GAME', duke: oneDecimal(duke.pointsFor), opponent: oneDecimal(opponent.pointsFor) },
     { label: 'RUSH YARDS / GAME', duke: oneDecimal(duke.rushingYards), opponent: oneDecimal(opponent.rushingYards) },
     { label: 'PASS YARDS / GAME', duke: oneDecimal(duke.passingYards), opponent: oneDecimal(opponent.passingYards) },
     { label: 'TOTAL YARDS / GAME', duke: oneDecimal(duke.totalYards), opponent: oneDecimal(opponent.totalYards) },
-    { label: 'YARDS ALLOWED / GAME', duke: oneDecimal(duke.yardsAllowed), opponent: oneDecimal(opponent.yardsAllowed) },
   ].filter((row) => row.duke != null || row.opponent != null);
+  const defenseRows = [
+    { label: 'POINTS ALLOWED / GAME', duke: oneDecimal(duke.pointsAgainst), opponent: oneDecimal(opponent.pointsAgainst) },
+    { label: 'RUSH YARDS ALLOWED / GAME', duke: oneDecimal(duke.rushYardsAllowed), opponent: oneDecimal(opponent.rushYardsAllowed) },
+    { label: 'PASS YARDS ALLOWED / GAME', duke: oneDecimal(duke.passYardsAllowed), opponent: oneDecimal(opponent.passYardsAllowed) },
+    { label: 'TOTAL YARDS ALLOWED / GAME', duke: oneDecimal(duke.yardsAllowed), opponent: oneDecimal(opponent.yardsAllowed) },
+    { label: 'TURNOVER MARGIN / GAME', duke: oneDecimal(duke.turnoverMargin), opponent: oneDecimal(opponent.turnoverMargin) },
+  ].filter((row) => row.duke != null || row.opponent != null);
+  const seasonRows = [...offenseRows, ...defenseRows];
   const strengthRows = [
     duke.rushingYards != null ? { label: dukeName.toUpperCase(), value: `Averaging ${oneDecimal(duke.rushingYards)} rushing yards per game.` } : null,
     opponent.yardsAllowed != null ? { label: opponentName.toUpperCase(), value: `Allowing ${oneDecimal(opponent.yardsAllowed)} total yards per game.` } : null,
@@ -195,6 +266,9 @@ export function buildBulletinContext({
     recordSummary: `${duke.record ? `${dukeName} ${duke.record}` : `${dukeName} record unavailable`}; ${opponent.record ? `${opponentName} ${opponent.record}` : `${opponentName} record unavailable`}.`,
     seasonSummary: `${formatTeamSummary(duke)} ${formatTeamSummary(opponent)}`,
     seasonRows,
+    offenseRows,
+    defenseRows,
+    playerRows: [...keyPlayerRows(dukePlayerStats, dukeName), ...keyPlayerRows(opponentPlayerStats, opponentName)],
     strengthRows,
     lineRows,
     marketRows,

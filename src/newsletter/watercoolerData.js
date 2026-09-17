@@ -1,4 +1,5 @@
 import { buildOpponentHistory, selectHistoricalFact } from './guideContext.js';
+import { isDukeTeam } from '../teamUtils.js';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -29,10 +30,6 @@ function weekDateKeys(startAt) {
   const weekday = new Date(`${dateKey}T12:00:00Z`).getUTCDay();
   const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
   return Array.from({ length: 7 }, (_, index) => addDays(dateKey, mondayOffset + index));
-}
-
-function isDuke(team) {
-  return team?.slug === 'duke' || team?.name?.toLowerCase() === 'duke';
 }
 
 function recordLabel(dukeScore, opponentScore, opponentName = 'the opponent') {
@@ -101,8 +98,8 @@ export async function loadWatercoolerContext(client, { guide, nextGame, nextPart
 
   const historicalGames = games.flatMap((game) => {
     const gameParticipants = participantsByGame.get(game.id) || [];
-    const duke = gameParticipants.find((participant) => isDuke(participant.team));
-    const opponent = gameParticipants.find((participant) => !isDuke(participant.team));
+    const duke = gameParticipants.find((participant) => isDukeTeam(participant.team));
+    const opponent = gameParticipants.find((participant) => !isDukeTeam(participant.team));
     if (!duke || !opponent || duke.score == null || opponent.score == null || !game.start_at) return [];
     return [{
       gameId: game.id,
@@ -115,7 +112,7 @@ export async function loadWatercoolerContext(client, { guide, nextGame, nextPart
       location: [game.venue_name, game.city, game.state].filter(Boolean).join(', '),
     }];
   });
-  const upcomingOpponent = nextParticipants.find((participant) => !isDuke(participant.team));
+  const upcomingOpponent = nextParticipants.find((participant) => !isDukeTeam(participant.team));
   const upcomingOpponentName = upcomingOpponent?.team?.name || 'the next opponent';
   const upcomingOpponentSlug = upcomingOpponent?.team?.slug;
   const dateKeys = new Set(weekDateKeys(nextGame.start_at));
