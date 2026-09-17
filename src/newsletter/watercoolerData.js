@@ -154,6 +154,7 @@ export async function loadWatercoolerContext(client, { guide, nextGame, nextPart
       ? `${weekGames.length} Duke archive entr${weekGames.length === 1 ? 'y' : 'ies'} land on these calendar dates: ${weekGames.slice(0, 3).map(describeWinnerFirstGame).join('; ')}.`
       : programFact || 'This week\'s column is opening with the strongest verified archive fact available.',
     backstory: chooseWatercoolerBackstory(weekGames, programFact),
+    archiveFact: programFact || chooseWatercoolerBackstory(weekGames, null),
     opponentHistory: series?.statement || (opponentGames.length > 0
       ? `Duke is ${opponentGames.filter((game) => game.dukeScore > game.opponentScore).length}-${opponentGames.filter((game) => game.dukeScore < game.opponentScore).length} against ${upcomingOpponentName} in the indexed record.`
       : `The indexed archive has no prior Duke-${upcomingOpponentName} meeting.`),

@@ -33,7 +33,7 @@ export function buildWatercoolerIssueData(issueData, { issueDate } = {}) {
     brief_sections: [
       { label: `THIS WEEK IN DUKE HISTORY (${context.weekLabel || 'THE ARCHIVE'})`, detail: context.weekSummary || 'The calendar archive is still being indexed.' },
       { label: 'THE BACKSTORY', detail: context.backstory || 'The archive is still looking for its oddest footnote.' },
-      { label: 'THE HMM FACT', detail: context.historicalFact || archiveDetail(issueData) },
+      { label: 'THE HMM FACT', detail: context.archiveFact || context.backstory || archiveDetail(issueData) },
     ],
   };
 }
