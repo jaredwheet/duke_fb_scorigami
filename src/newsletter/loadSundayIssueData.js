@@ -90,7 +90,7 @@ async function loadCanonicalSeasonRecords(client, season, teamNames = []) {
       else summary.ties += 1;
     }
   }
-  return Object.fromEntries(Object.entries(summaries).map(([key, summary]) => {
+  return Object.fromEntries(Object.entries(summaries).filter(([, summary]) => summary.pointsFor.length > 0).map(([key, summary]) => {
     const gamesPlayed = summary.pointsFor.length;
     return [key, {
       record: `${summary.wins}-${summary.losses}${summary.ties > 0 ? `-${summary.ties}` : ''}`,
