@@ -18,7 +18,6 @@ function archiveDetail(issueData) {
 
 export function buildWatercoolerIssueData(issueData, { issueDate } = {}) {
   const context = issueData.watercooler_context || {};
-  const opponent = context.upcomingOpponent || issueData.next_opponent || 'the next opponent';
   return {
     ...issueData,
     publication_key: 'wallace-wade-watercooler',
@@ -28,14 +27,13 @@ export function buildWatercoolerIssueData(issueData, { issueDate } = {}) {
     subject: 'The Wallace Wade Watercooler',
     preview_text: 'A mid-week trip through Duke football history, records, and statistical oddities.',
     edition_name: 'THE WALLACE WADE WATERCOOLER',
-    headline: `THE OPPONENT FILE: ${opponent.toUpperCase()}`,
-    subheadline: `A mid-week walk through the dates, meetings, and odd facts waiting in Duke's archive.`,
-    brief_lead: `Duke's next opponent is ${opponent}. Before the weekend arrives, here is the part of the archive that makes the matchup more interesting than the schedule grid suggests.`,
+    headline: 'THE ARCHIVE GETS WEIRD',
+    subheadline: 'A mid-week walk through the dates, scoreboards, and stories that refuse to stay buried.',
+    brief_lead: context.backstory || 'Before the weekend arrives, here is the part of the archive that makes Duke football more interesting than the schedule grid suggests.',
     brief_sections: [
       { label: `THIS WEEK IN DUKE HISTORY (${context.weekLabel || 'THE ARCHIVE'})`, detail: context.weekSummary || 'The calendar archive is still being indexed.' },
-      { label: `THE ${opponent.toUpperCase()} FILE`, detail: context.opponentHistory || archiveDetail(issueData) },
-      { label: 'THE HMM FACT', detail: context.historicalFact || 'The archive is still looking for its oddest footnote.' },
-      { label: 'RECENT MEETINGS', detail: context.recentOpponentGames?.join('; ') || context.nextGameFact || `Duke meets ${opponent} next.` },
+      { label: 'THE BACKSTORY', detail: context.backstory || 'The archive is still looking for its oddest footnote.' },
+      { label: 'THE HMM FACT', detail: context.historicalFact || archiveDetail(issueData) },
     ],
   };
 }
@@ -60,6 +58,7 @@ export function buildVictoryBellBulletinIssueData(issueData, { issueDate, odds =
     brief_lead: `Duke's next assignment is ${opponent}. ${issueData.next_details || 'Game details are still being confirmed.'}`,
     brief_sections: [
       { label: 'THE MATCHUP', detail: issueData.next_details || `Duke meets ${opponent}.` },
+      { label: 'THE OPPONENT FILE', detail: issueData.watercooler_context?.opponentHistory || `Duke meets ${opponent} next.` },
       { label: 'BETTING BOARD', detail: oddsDetail },
       { label: 'NUMBERS TO KNOW', detail: lastGameDetail },
     ],

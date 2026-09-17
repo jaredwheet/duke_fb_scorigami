@@ -35,22 +35,38 @@ function isDuke(team) {
   return team?.slug === 'duke' || team?.name?.toLowerCase() === 'duke';
 }
 
-function recordLabel(dukeScore, opponentScore) {
+function recordLabel(dukeScore, opponentScore, opponentName = 'the opponent') {
   if (dukeScore == null || opponentScore == null) return 'score unavailable';
-  return dukeScore > opponentScore ? `Duke beat the opponent ${dukeScore}-${opponentScore}`
-    : dukeScore < opponentScore ? `Duke lost ${dukeScore}-${opponentScore}`
+  return dukeScore > opponentScore ? `Duke beat ${opponentName} ${dukeScore}-${opponentScore}`
+    : dukeScore < opponentScore ? `${opponentName} beat Duke ${opponentScore}-${dukeScore}`
       : `Duke tied ${dukeScore}-${opponentScore}`;
 }
 
-function describeGame(game) {
-  const date = localDateParts(game.startAt);
+export function describeWinnerFirstGame(game) {
   const opponent = game.opponent || 'the opponent';
   const dateLabel = new Intl.DateTimeFormat('en-US', {
     month: 'long',
     day: 'numeric',
     timeZone: 'America/New_York',
   }).format(new Date(game.startAt));
-  return `${dateLabel}, ${game.season}: Duke ${game.dukeScore}-${game.opponentScore} vs ${opponent}`;
+  const score = game.dukeScore === game.opponentScore
+    ? `Duke ${game.dukeScore}, ${opponent} ${game.opponentScore}`
+    : game.dukeScore > game.opponentScore
+      ? `Duke ${game.dukeScore}, ${opponent} ${game.opponentScore}`
+      : `${opponent} ${game.opponentScore}, Duke ${game.dukeScore}`;
+  return `${dateLabel}, ${game.season}: ${score}`;
+}
+
+export function chooseWatercoolerBackstory(games = [], fallback = null) {
+  const shootout = games
+    .slice()
+    .sort((left, right) => (right.dukeScore + right.opponentScore) - (left.dukeScore + left.opponentScore))[0];
+  if (shootout && shootout.dukeScore + shootout.opponentScore >= 70) {
+    const winnerFirst = describeWinnerFirstGame(shootout).replace(/, \d{4}: /, ': ');
+    return `The week's wildest scoreboard belongs to ${winnerFirst}: ${shootout.dukeScore + shootout.opponentScore} combined points, and a game nobody could mistake for a defensive clinic.`;
+  }
+  if (games[0]) return `The archive's best footnote this week is ${describeWinnerFirstGame(games[0])}.`;
+  return fallback || 'The archive is opening with a verified program-history fact rather than recycling last week\'s recap.';
 }
 
 async function fetchAllRows(client, table, columns, configure, pageSize = 500) {
@@ -124,21 +140,25 @@ export async function loadWatercoolerContext(client, { guide, nextGame, nextPart
   const highestScoringWeekGame = weekGames
     .slice()
     .sort((left, right) => right.dukeScore - left.dukeScore)[0];
+  const programFact = guide?.programRecords?.[0]?.entries?.[0]
+    ? `${guide.programRecords[0].entries[0].player} owns Duke's ${guide.programRecords[0].label.toLowerCase()} mark at ${guide.programRecords[0].entries[0].value}.`
+    : null;
+  const fallbackFact = historicalFact?.statement
+    || series?.historicalNote
+    || programFact;
 
   return {
-    upcomingOpponent: upcomingOpponentName,
     weekLabel,
     weekGames: weekGames.slice(0, 5),
     weekSummary: weekGames.length > 0
-      ? `Duke has ${weekGames.length} archived game${weekGames.length === 1 ? '' : 's'} on these calendar dates. ${weekGames.slice(0, 3).map(describeGame).join('; ')}.`
-      : `The Duke archive has no indexed game on these calendar dates yet.`,
+      ? `${weekGames.length} Duke archive entr${weekGames.length === 1 ? 'y' : 'ies'} land on these calendar dates: ${weekGames.slice(0, 3).map(describeWinnerFirstGame).join('; ')}.`
+      : programFact || 'This week\'s column is opening with the strongest verified archive fact available.',
+    backstory: chooseWatercoolerBackstory(weekGames, programFact),
     opponentHistory: series?.statement || (opponentGames.length > 0
       ? `Duke is ${opponentGames.filter((game) => game.dukeScore > game.opponentScore).length}-${opponentGames.filter((game) => game.dukeScore < game.opponentScore).length} against ${upcomingOpponentName} in the indexed record.`
       : `The indexed archive has no prior Duke-${upcomingOpponentName} meeting.`),
-    recentOpponentGames: opponentGames.slice(0, 3).map(describeGame),
-    historicalFact: historicalFact?.statement
-      || series?.historicalNote
-      || (highestScoringWeekGame ? `The highest Duke score in this week's indexed games was ${highestScoringWeekGame.dukeScore}, against ${highestScoringWeekGame.opponent}.` : 'The archive is still looking for its oddest footnote.'),
-    nextGameFact: `${upcomingOpponentName} is next. ${recordLabel(opponentGames[0]?.dukeScore, opponentGames[0]?.opponentScore)}`,
+    recentOpponentGames: opponentGames.slice(0, 3).map(describeWinnerFirstGame),
+    historicalFact: fallbackFact || (highestScoringWeekGame ? `The highest Duke score in this week's indexed games was ${highestScoringWeekGame.dukeScore}, against ${highestScoringWeekGame.opponent}.` : 'The archive is opening with a verified program-history fact.'),
+    nextGameFact: `${upcomingOpponentName} is next. ${recordLabel(opponentGames[0]?.dukeScore, opponentGames[0]?.opponentScore, upcomingOpponentName)}`,
   };
 }

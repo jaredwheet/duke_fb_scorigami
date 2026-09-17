@@ -19,6 +19,7 @@ const baseIssue = {
     upcomingOpponent: 'Stanford',
     weekLabel: 'September 14-20',
     weekSummary: 'Duke has 2 archived games on these calendar dates.',
+    backstory: 'Pittsburgh 58, Duke 55: a 113-point September shootout.',
     opponentHistory: 'Duke trails the Stanford series 1-3.',
     historicalFact: 'Duke last beat Stanford in 1971.',
     recentOpponentGames: ['September 20, 2025: Duke 21-24 vs Stanford'],
@@ -34,7 +35,8 @@ test('builds the Wallace Wade Watercooler contract', () => {
     issue_date_key: '2026-09-16',
   });
   expect(issue.brief_sections[0].detail).toBe('Duke has 2 archived games on these calendar dates.');
-  expect(issue.brief_sections[1].detail).toBe('Duke trails the Stanford series 1-3.');
+  expect(issue.brief_sections[1].detail).toBe('Pittsburgh 58, Duke 55: a 113-point September shootout.');
+  expect(issue.headline).not.toContain('STANFORD');
   expect(issue.brief_lead).not.toContain('Duke won a road game');
 });
 
@@ -46,5 +48,5 @@ test('builds the Victory Bell Bulletin without inventing betting lines', () => {
     game_id: 3,
     edition_name: 'THE VICTORY BELL BULLETIN',
   });
-  expect(issue.brief_sections[1].detail).toContain('not available');
+  expect(issue.brief_sections[2].detail).toContain('not available');
 });

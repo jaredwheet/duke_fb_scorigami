@@ -17,7 +17,7 @@ const resend = new Resend(apiKey);
 const baseIssueData = process.env.NEWSLETTER_USE_LIVE_DATA === 'true'
   ? await loadLatestSundayIssueData(undefined, {
     includeOdds: edition === 'bulletin',
-    includeWatercooler: edition === 'watercooler',
+    includeWatercooler: edition === 'watercooler' || edition === 'bulletin',
   })
   : {};
 const deterministicIssueData = edition === 'watercooler'
