@@ -142,43 +142,67 @@ function playerGameRows(games = [], teamName) {
   });
 }
 
-function keyPlayerRows(games = [], teamName) {
+function leaderRows(games = [], teamName) {
   const players = new Map();
   for (const row of playerGameRows(games, teamName)) {
     if (!row.player || row.value == null || /punt|kick|field goal|long snap/i.test(row.category)) continue;
     const player = players.get(row.playerId) || {
       player: row.player,
       games: new Set(),
-      yards: 0,
-      touchdowns: 0,
+      passingYards: 0,
+      passingTouchdowns: 0,
+      rushingYards: 0,
+      rushingTouchdowns: 0,
+      receivingYards: 0,
+      receivingTouchdowns: 0,
       tackles: 0,
-      sacks: 0,
-      role: row.category || 'football',
+      interceptions: 0,
     };
     player.games.add(row.gameId);
-    if (/yd|yards/.test(row.statType)) player.yards += row.value;
-    if (/td|touchdown/.test(row.statType)) player.touchdowns += row.value;
+    const yards = /yd|yards/.test(row.statType);
+    const touchdowns = /td|touchdown/.test(row.statType);
+    const category = row.category;
+    if (category.includes('pass') && yards) player.passingYards += row.value;
+    if (category.includes('pass') && touchdowns) player.passingTouchdowns += row.value;
+    if (category.includes('rush') && yards) player.rushingYards += row.value;
+    if (category.includes('rush') && touchdowns) player.rushingTouchdowns += row.value;
+    if (category.includes('receiv') && yards) player.receivingYards += row.value;
+    if (category.includes('receiv') && touchdowns) player.receivingTouchdowns += row.value;
     if (/tackle|tkl/.test(row.statType)) player.tackles += row.value;
-    if (/sack/.test(row.statType)) player.sacks += row.value;
+    if (/int|interception/.test(row.statType)) player.interceptions += row.value;
     players.set(row.playerId, player);
   }
-  return [...players.values()]
-    .map((player) => {
-      const gamesPlayed = Math.max(player.games.size, 1);
-      const parts = [];
-      if (player.yards > 0) parts.push(`${oneDecimal(player.yards / gamesPlayed)} YDS/G`);
-      if (player.touchdowns > 0) parts.push(`${oneDecimal(player.touchdowns)} TD`);
-      if (player.tackles > 0) parts.push(`${oneDecimal(player.tackles / gamesPlayed)} TKL/G`);
-      if (player.sacks > 0) parts.push(`${oneDecimal(player.sacks)} SACK`);
-      return {
-        label: player.player,
-        value: `${player.role} | ${parts.join(', ') || 'season production pending'}`,
-        score: player.yards + (player.touchdowns * 50) + (player.tackles * 2) + (player.sacks * 15),
-      };
-    })
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 3)
-    .map(({ label, value }) => ({ label, value }));
+  const leaders = [
+    {
+      label: 'TOP RUSHER',
+      field: 'rushingYards',
+      touchdownField: 'rushingTouchdowns',
+      metric: 'YDS/G',
+    },
+    {
+      label: 'TOP PASSER',
+      field: 'passingYards',
+      touchdownField: 'passingTouchdowns',
+      metric: 'YDS/G',
+    },
+    {
+      label: 'TOP RECEIVER',
+      field: 'receivingYards',
+      touchdownField: 'receivingTouchdowns',
+      metric: 'YDS/G',
+    },
+    { label: 'TOP TACKLER', field: 'tackles', metric: 'TKL/G' },
+    { label: 'TOP INTERCEPTOR', field: 'interceptions', metric: 'INT' },
+  ];
+  return leaders.flatMap((leader) => {
+    const player = [...players.values()].sort((left, right) => right[leader.field] - left[leader.field])[0];
+    if (!player || player[leader.field] <= 0) return [];
+    const gamesPlayed = Math.max(player.games.size, 1);
+    const value = leader.metric === 'INT'
+      ? `${player.player} | ${oneDecimal(player[leader.field])} INT`
+      : `${player.player} | ${oneDecimal(player[leader.field] / gamesPlayed)} ${leader.metric}${leader.touchdownField && player[leader.touchdownField] > 0 ? `, ${oneDecimal(player[leader.touchdownField])} TD` : ''}`;
+    return [{ label: leader.label, value }];
+  });
 }
 
 function formatTeamSummary(summary) {
@@ -316,8 +340,8 @@ export function buildBulletinContext({
     seasonRows,
     offenseRows,
     defenseRows,
-    dukePlayerRows: keyPlayerRows(dukePlayerGameStats, dukeName),
-    opponentPlayerRows: keyPlayerRows(opponentPlayerGameStats, opponentName),
+    dukePlayerRows: leaderRows(dukePlayerGameStats, dukeName),
+    opponentPlayerRows: leaderRows(opponentPlayerGameStats, opponentName),
     strengthRows,
     lineRows,
     marketRows,

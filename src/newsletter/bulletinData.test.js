@@ -22,6 +22,14 @@ test('builds season-long matchup strengths and market view', () => {
       { teams: [{ school: 'Stanford', points: 27, stats: [] }, { school: 'San Jose State', points: 20, stats: [] }] },
       { teams: [{ school: 'Stanford', points: 17, stats: [] }, { school: 'USC', points: 30, stats: [] }] },
     ],
+    dukePlayerGameStats: [{
+      id: 1,
+      teams: [{ school: { name: 'Duke' }, categories: [
+        { name: 'rushing', types: [{ name: 'YDS', athletes: [{ id: 1, name: 'Duke Runner', stat: '120' }] }, { name: 'TD', athletes: [{ id: 1, name: 'Duke Runner', stat: '2' }] }] },
+        { name: 'passing', types: [{ name: 'YDS', athletes: [{ id: 2, name: 'Duke Passer', stat: '250' }] }] },
+      ] }],
+    }],
+    opponentPlayerGameStats: [],
     lines: [{ homeTeam: 'Duke', awayTeam: 'Stanford', lines: [{ provider: 'Consensus', formattedSpread: 'Duke -3.5', homeMoneyline: -155, awayMoneyline: 130, overUnder: 51.5 }] }],
     pregameProbabilities: [{ homeTeam: 'Duke', awayTeam: 'Stanford', homeWinProb: 0.68 }],
   });
@@ -30,4 +38,5 @@ test('builds season-long matchup strengths and market view', () => {
   expect(context.strengths).toContain('Duke is averaging');
   expect(context.winProbability).toContain('68%');
   expect(context.opponent.record).toBe('1-1');
+  expect(context.dukePlayerRows[0]).toMatchObject({ label: 'TOP RUSHER', value: expect.stringContaining('Duke Runner') });
 });
