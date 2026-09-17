@@ -18,7 +18,10 @@ test('builds season-long matchup strengths and market view', () => {
         { school: 'Illinois', points: 24, stats: [{ category: 'totalYards', stat: '410' }] },
       ] },
     ],
-    opponentGameStats: [],
+    opponentGameStats: [
+      { teams: [{ school: 'Stanford', points: 27, stats: [] }, { school: 'San Jose State', points: 20, stats: [] }] },
+      { teams: [{ school: 'Stanford', points: 17, stats: [] }, { school: 'USC', points: 30, stats: [] }] },
+    ],
     lines: [{ homeTeam: 'Duke', awayTeam: 'Stanford', lines: [{ provider: 'Consensus', formattedSpread: 'Duke -3.5', homeMoneyline: -155, awayMoneyline: 130, overUnder: 51.5 }] }],
     pregameProbabilities: [{ homeTeam: 'Duke', awayTeam: 'Stanford', homeWinProb: 0.68 }],
   });
@@ -26,4 +29,5 @@ test('builds season-long matchup strengths and market view', () => {
   expect(context.seasonSummary).toContain('Duke');
   expect(context.strengths).toContain('Duke is averaging');
   expect(context.winProbability).toContain('68%');
+  expect(context.opponent.record).toBe('1-1');
 });

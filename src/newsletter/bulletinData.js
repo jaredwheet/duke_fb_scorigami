@@ -56,6 +56,7 @@ function teamSummary(teamName, seasonStats, gameStats) {
   const seasonTotalYards = findStat(stats, ['totalyards', 'totaloffense']);
   const seasonRushingYards = findStat(stats, ['rushingyards', 'rushing']);
   const seasonPassingYards = findStat(stats, ['passingyards', 'passing']);
+  const seasonFirstDowns = findStat(stats, ['firstdowns', 'firstdowns']);
   const pointsFor = average(rows.map((row) => row.points))
     ?? (seasonPoints == null ? null : seasonPoints / Math.max(games, 1));
   const pointsAgainst = average(rows.map((row) => row.opponentPoints));
@@ -65,7 +66,12 @@ function teamSummary(teamName, seasonStats, gameStats) {
     ?? (seasonRushingYards == null ? null : seasonRushingYards / Math.max(games, 1));
   const passingYards = average(rows.map((row) => findStat(row.team, ['passingyards', 'passing'])))
     ?? (seasonPassingYards == null ? null : seasonPassingYards / Math.max(games, 1));
+  const firstDowns = average(rows.map((row) => findStat(row.team, ['firstdowns'])))
+    ?? (seasonFirstDowns == null ? null : seasonFirstDowns / Math.max(games, 1));
   const yardsAllowed = average(rows.map((row) => findStat(row.opponent, ['totalyards', 'totaloffense'])));
+  const wins = rows.filter((row) => row.points != null && row.opponentPoints != null && row.points > row.opponentPoints).length;
+  const losses = rows.filter((row) => row.points != null && row.opponentPoints != null && row.points < row.opponentPoints).length;
+  const ties = rows.filter((row) => row.points != null && row.opponentPoints != null && row.points === row.opponentPoints).length;
 
   return {
     teamName,
@@ -75,7 +81,9 @@ function teamSummary(teamName, seasonStats, gameStats) {
     totalYards,
     rushingYards,
     passingYards,
+    firstDowns,
     yardsAllowed,
+    record: rows.length > 0 ? `${wins}-${losses}${ties > 0 ? `-${ties}` : ''}` : null,
   };
 }
 
@@ -114,6 +122,12 @@ export function findCfbDataOdds(lines = [], { dukeName = 'Duke', opponentName } 
   return {
     provider: line.provider || 'CollegeFootballData',
     summary: `${details.join('; ')} via ${line.provider || 'CollegeFootballData'}.`,
+    lineRows: [
+      line.formattedSpread || line.spread != null ? { label: 'SPREAD', value: line.formattedSpread || String(line.spread) } : null,
+      dukeMoneyline != null ? { label: 'DUKE MONEYLINE', value: `${dukeMoneyline > 0 ? '+' : ''}${dukeMoneyline}` } : null,
+      opponentMoneyline != null ? { label: 'OPPONENT MONEYLINE', value: `${opponentMoneyline > 0 ? '+' : ''}${opponentMoneyline}` } : null,
+      line.overUnder != null ? { label: 'TOTAL', value: String(line.overUnder) } : null,
+    ].filter(Boolean),
     winProbability: noVigProbability == null
       ? null
       : `Market-implied Duke win chance: ${noVigProbability}% (no-vig moneyline estimate).`,
@@ -140,17 +154,51 @@ export function buildBulletinContext({
   });
   const probabilityText = probability?.homeWinProb == null
     ? odds?.winProbability || 'Pregame win probability is not available from the configured feed.'
-    : `${normalize(probability.homeTeam).includes(normalize(dukeName)) ? dukeName : opponentName} pregame win probability: ${Math.round((normalize(probability.homeTeam).includes(normalize(dukeName)) ? probability.homeWinProb : 1 - probability.homeWinProb) * 100)}%.`;
+      : `${normalize(probability.homeTeam).includes(normalize(dukeName)) ? dukeName : opponentName} pregame win probability: ${Math.round((normalize(probability.homeTeam).includes(normalize(dukeName)) ? probability.homeWinProb : 1 - probability.homeWinProb) * 100)}%.`;
+  const probabilityValue = probability?.homeWinProb == null
+    ? null
+    : Math.round((normalize(probability.homeTeam).includes(normalize(dukeName)) ? probability.homeWinProb : 1 - probability.homeWinProb) * 100);
   const strengths = [];
   if (duke.rushingYards != null) strengths.push(`${dukeName} is averaging ${oneDecimal(duke.rushingYards)} rushing yards per game`);
   if (opponent.yardsAllowed != null) strengths.push(`${opponentName} is allowing ${oneDecimal(opponent.yardsAllowed)} total yards per game`);
   if (duke.passingYards != null) strengths.push(`${dukeName} is averaging ${oneDecimal(duke.passingYards)} passing yards per game`);
   if (opponent.rushingYards != null) strengths.push(`${opponentName} is averaging ${oneDecimal(opponent.rushingYards)} rushing yards per game`);
 
+  const seasonRows = [
+    { label: 'POINTS / GAME', duke: oneDecimal(duke.pointsFor), opponent: oneDecimal(opponent.pointsFor) },
+    { label: 'RUSH YARDS / GAME', duke: oneDecimal(duke.rushingYards), opponent: oneDecimal(opponent.rushingYards) },
+    { label: 'PASS YARDS / GAME', duke: oneDecimal(duke.passingYards), opponent: oneDecimal(opponent.passingYards) },
+    { label: 'TOTAL YARDS / GAME', duke: oneDecimal(duke.totalYards), opponent: oneDecimal(opponent.totalYards) },
+    { label: 'YARDS ALLOWED / GAME', duke: oneDecimal(duke.yardsAllowed), opponent: oneDecimal(opponent.yardsAllowed) },
+  ].filter((row) => row.duke != null || row.opponent != null);
+  const strengthRows = [
+    duke.rushingYards != null ? { label: dukeName.toUpperCase(), value: `Averaging ${oneDecimal(duke.rushingYards)} rushing yards per game.` } : null,
+    opponent.yardsAllowed != null ? { label: opponentName.toUpperCase(), value: `Allowing ${oneDecimal(opponent.yardsAllowed)} total yards per game.` } : null,
+    duke.passingYards != null ? { label: `${dukeName.toUpperCase()} AIR`, value: `Averaging ${oneDecimal(duke.passingYards)} passing yards per game.` } : null,
+  ].filter(Boolean);
+  const lineRows = odds?.lineRows || [];
+  const marketRows = [
+    probabilityValue == null ? null : { label: 'CFBD PREGAME MODEL', value: `${probabilityValue}% Duke win probability` },
+    odds?.winProbability ? { label: 'NO-VIG MONEYLINE', value: odds.winProbability.replace('Market-implied Duke win chance: ', '').replace(' (no-vig moneyline estimate).', '') } : null,
+  ].filter(Boolean);
+  const matchupRows = [
+    { label: 'POINTS / GAME', duke: oneDecimal(duke.pointsFor), opponent: oneDecimal(opponent.pointsFor) },
+    { label: 'RUSH YARDS / GAME', duke: oneDecimal(duke.rushingYards), opponent: oneDecimal(opponent.rushingYards) },
+    { label: 'PASS YARDS / GAME', duke: oneDecimal(duke.passingYards), opponent: oneDecimal(opponent.passingYards) },
+    { label: 'TOTAL YARDS / GAME', duke: oneDecimal(duke.totalYards), opponent: oneDecimal(opponent.totalYards) },
+    { label: 'YARDS ALLOWED / GAME', duke: oneDecimal(duke.yardsAllowed), opponent: oneDecimal(opponent.yardsAllowed) },
+  ].filter((row) => row.duke != null || row.opponent != null);
+
   return {
     duke,
     opponent,
+    recordSummary: `${duke.record ? `${dukeName} ${duke.record}` : `${dukeName} record unavailable`}; ${opponent.record ? `${opponentName} ${opponent.record}` : `${opponentName} record unavailable`}.`,
     seasonSummary: `${formatTeamSummary(duke)} ${formatTeamSummary(opponent)}`,
+    seasonRows,
+    strengthRows,
+    lineRows,
+    marketRows,
+    matchupRows,
     strengths: strengths.length > 0 ? `${strengths.join('; ')}.` : 'Season-to-date matchup strengths are not available from the configured statistics feed.',
     odds,
     winProbability: probabilityText,

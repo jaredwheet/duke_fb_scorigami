@@ -44,6 +44,7 @@ export function buildVictoryBellBulletinIssueData(issueData, { issueDate, odds =
   const oddsDetail = context.odds?.summary || odds?.summary || 'Published lines are not available from the configured free odds feed.';
   const marketDetail = context.winProbability || odds?.winProbability || 'Market-implied win probability is not available from the configured feed.';
   const seriesHistory = issueData.watercooler_context?.opponentHistory || `Duke meets ${opponent} next.`;
+  const matchupDetail = `${context.recordSummary || 'Current records are unavailable.'} ${issueData.next_details || `Duke meets ${opponent}.`}`;
   return {
     ...issueData,
     publication_key: 'victory-bell-bulletin',
@@ -57,14 +58,19 @@ export function buildVictoryBellBulletinIssueData(issueData, { issueDate, odds =
     edition_name: 'THE VICTORY BELL BULLETIN',
     headline: `DUKE VS ${opponent.toUpperCase()}`,
     subheadline: 'The weekend primer: series history, season-long strengths, the line, and the market view.',
-    brief_lead: `Duke's next assignment is ${opponent}. ${issueData.next_details || 'Game details are still being confirmed.'}`,
+    brief_lead: '',
+    matchup_graphic: {
+      dukeName: 'Duke',
+      opponentName: opponent,
+      rows: context.matchupRows || [],
+    },
     brief_sections: [
-      { label: 'THE MATCHUP', detail: issueData.next_details || `Duke meets ${opponent}.` },
+      { label: 'THE MATCHUP', detail: matchupDetail },
       { label: 'SERIES HISTORY', detail: seriesHistory },
-      { label: 'THE LINE', detail: oddsDetail },
-      { label: 'SEASON NUMBERS', detail: context.seasonSummary || 'Season-to-date team numbers are not available from the configured statistics feed.' },
-      { label: 'STRENGTHS & PRESSURE POINTS', detail: context.strengths || 'The matchup strengths are still being assembled from the season feed.' },
-      { label: 'MARKET VIEW', detail: marketDetail },
+      { label: 'THE LINE', detail: oddsDetail, rows: context.lineRows },
+      { label: 'SEASON NUMBERS', detail: context.seasonSummary || 'Season-to-date team numbers are not available from the configured statistics feed.', rows: context.seasonRows },
+      { label: 'STRENGTHS & PRESSURE POINTS', detail: context.strengths || 'The matchup strengths are still being assembled from the season feed.', rows: context.strengthRows },
+      { label: 'MARKET VIEW', detail: marketDetail, rows: context.marketRows },
     ],
     odds,
   };

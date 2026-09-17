@@ -91,7 +91,7 @@ async function sendPublication(publication, issueDate) {
   }
 
   try {
-    const { issueData, html, chartBuffer, editorialResult } = await prepareNewsletter(deterministicIssueData);
+    const { issueData, html, chartBuffer, matchupBuffer, editorialResult } = await prepareNewsletter(deterministicIssueData);
     if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
     if (publication.edition === 'sunday') {
       console.log(`Deterministic moment: ${deterministicIssueData.guide_context?.editorialMoment || deterministicIssueData.turning_point?.description || 'none'}`);
@@ -110,7 +110,10 @@ async function sendPublication(publication, issueDate) {
       to: [recipient],
       subject: issueData.subject,
       html,
-      attachments: chartBuffer ? [{ filename: 'duke-win-expectancy.png', content: chartBuffer, contentId: 'duke-win-expectancy' }] : undefined,
+      attachments: [
+        ...(chartBuffer ? [{ filename: 'duke-win-expectancy.png', content: chartBuffer, contentId: 'duke-win-expectancy' }] : []),
+        ...(matchupBuffer ? [{ filename: 'duke-matchup.png', content: matchupBuffer, contentId: 'duke-matchup' }] : []),
+      ],
       tags: [{ name: 'environment', value: 'automation' }, { name: 'publication', value: publication.key }],
       headers: { 'X-Entity-Ref-ID': `duke-scorigami-${publication.key}-${deterministicIssueData.game_id}-${claim.subscriber.id}` },
     });

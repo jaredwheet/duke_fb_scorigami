@@ -14,14 +14,37 @@ function escapeHtml(value) {
 }
 
 function buildSectionRows(sections = []) {
-  return sections.map((section) => `
-    <tr style="border-bottom:1px solid #b5ad9f;">
-      <td style="padding:10px 4px 4px;font-size:11px;letter-spacing:2px;font-weight:700;">${escapeHtml(section.label)}</td>
-    </tr>
-    <tr>
-      <td style="padding:4px 4px 12px;font-size:14px;line-height:1.5;">${escapeHtml(section.detail)}</td>
-    </tr>
-  `).join('');
+  return sections.map((section) => {
+    const rows = section.rows?.length > 0
+      ? `
+        <tr style="border-bottom:1px solid #d9d2c3;">
+          <th align="left" style="padding:5px 4px;font-size:10px;letter-spacing:1px;">${escapeHtml(section.label)}</th>
+          ${section.rows[0].duke != null || section.rows[0].opponent != null
+            ? `<th align="right" style="padding:5px 4px;font-size:10px;letter-spacing:1px;">DUKE</th><th align="right" style="padding:5px 4px;font-size:10px;letter-spacing:1px;">OPP.</th>`
+            : '<th align="right" colspan="2" style="padding:5px 4px;font-size:10px;letter-spacing:1px;">DETAIL</th>'}
+        </tr>
+        ${section.rows.map((row) => row.duke != null || row.opponent != null
+          ? `<tr><td style="padding:5px 4px;font-size:12px;">${escapeHtml(row.label)}</td><td align="right" style="padding:5px 4px;font-size:12px;font-weight:700;">${escapeHtml(row.duke ?? '—')}</td><td align="right" style="padding:5px 4px;font-size:12px;font-weight:700;">${escapeHtml(row.opponent ?? '—')}</td></tr>`
+          : `<tr><td style="padding:5px 4px;font-size:12px;letter-spacing:1px;">${escapeHtml(row.label)}</td><td align="right" colspan="2" style="padding:5px 4px;font-size:13px;font-weight:700;">${escapeHtml(row.value ?? row.detail ?? '')}</td></tr>`).join('')}
+      `
+      : `
+        <tr style="border-bottom:1px solid #b5ad9f;"><td style="padding:10px 4px 4px;font-size:11px;letter-spacing:2px;font-weight:700;">${escapeHtml(section.label)}</td></tr>
+        <tr><td style="padding:4px 4px 12px;font-size:14px;line-height:1.5;">${escapeHtml(section.detail)}</td></tr>
+      `;
+    return rows;
+  }).join('');
+}
+
+function buildMatchupImageSection(source) {
+  if (!source) return '';
+  return `
+    <mj-section background-color="#f8f4ea" padding="8px 24px 18px">
+      <mj-column>
+        <mj-image src="${escapeHtml(source)}" alt="Duke and opponent season comparison" padding="0" />
+        <mj-text align="center" font-size="10px" color="#607080" padding-top="6px">Season-to-date comparison from the configured statistical feed.</mj-text>
+      </mj-column>
+    </mj-section>
+  `;
 }
 
 export async function renderBriefNewsletter(data = {}) {
@@ -35,11 +58,12 @@ export async function renderBriefNewsletter(data = {}) {
     subheadline: data.subheadline || '',
     brief_lead: data.brief_lead || '',
     section_rows: buildSectionRows(data.brief_sections),
+    matchup_image_section: buildMatchupImageSection(data.matchupImageSource),
     footer_text: data.footer_text || 'A quick read on Duke football.',
     unsubscribe_url: data.unsubscribe_url || 'https://example.com/unsubscribe',
     preferences_url: data.preferences_url || 'https://example.com/preferences',
   };
-  const rendered = template.replace(/\{\{([a-z_]+)\}\}/g, (_, key) => key === 'section_rows' ? values[key] : escapeHtml(values[key]));
+  const rendered = template.replace(/\{\{([a-z_]+)\}\}/g, (_, key) => ['section_rows', 'matchup_image_section'].includes(key) ? values[key] : escapeHtml(values[key]));
   const result = await mjml2html(rendered, { validationLevel: 'strict' });
   if (result.errors?.length) throw new Error(`Brief newsletter template validation failed: ${result.errors.map((error) => error.message).join('; ')}`);
   return result.html;

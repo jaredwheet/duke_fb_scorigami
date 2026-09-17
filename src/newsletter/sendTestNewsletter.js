@@ -26,7 +26,7 @@ const deterministicIssueData = edition === 'watercooler'
   : edition === 'bulletin'
     ? buildVictoryBellBulletinIssueData(baseIssueData, { issueDate, odds: baseIssueData.odds })
     : { ...baseIssueData, issue_date_key: issueDate };
-const { issueData, html, chartBuffer, editorialResult } = await prepareNewsletter(deterministicIssueData);
+const { issueData, html, chartBuffer, matchupBuffer, editorialResult } = await prepareNewsletter(deterministicIssueData);
 console.log(`Test edition: ${issueData.edition || 'sunday'}; issue date: ${issueDate}`);
 if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
 if (edition === 'sunday') {
@@ -38,7 +38,10 @@ const { data, error } = await resend.emails.send({
   to: [recipient],
   subject: `TEST: ${issueData.subject}`,
   html,
-  attachments: chartBuffer ? [{ filename: 'duke-win-expectancy.png', content: chartBuffer, contentId: 'duke-win-expectancy' }] : undefined,
+  attachments: [
+    ...(chartBuffer ? [{ filename: 'duke-win-expectancy.png', content: chartBuffer, contentId: 'duke-win-expectancy' }] : []),
+    ...(matchupBuffer ? [{ filename: 'duke-matchup.png', content: matchupBuffer, contentId: 'duke-matchup' }] : []),
+  ],
   tags: [{ name: 'environment', value: 'test' }, { name: 'edition', value: issueData.edition || 'sunday' }],
   headers: { 'X-Entity-Ref-ID': `duke-scorigami-test-${Date.now()}` },
 });

@@ -29,6 +29,7 @@
         <mj-text font-size="15px" line-height="1.55" padding-top="12px">{{brief_lead}}</mj-text>
       </mj-column>
     </mj-section>
+    {{matchup_image_section}}
     <mj-section background-color="#ffffff" padding="20px 24px">
       <mj-column>
         <mj-table>{{section_rows}}</mj-table>
