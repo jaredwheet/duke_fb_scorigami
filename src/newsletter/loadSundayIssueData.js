@@ -46,6 +46,60 @@ async function fetchPagedRows(client, table, columns, configure, pageSize = 500)
   }
 }
 
+function normalizedTeam(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+async function loadCanonicalSeasonRecords(client, season, teamNames = []) {
+  const targets = teamNames.filter(Boolean).map((name) => ({ name, key: normalizedTeam(name) }));
+  const { data: games, error: gamesError } = await client
+    .from('games')
+    .select('id')
+    .eq('season', season)
+    .eq('status', 'final');
+  if (gamesError) throw gamesError;
+  const gameIds = (games || []).map((game) => game.id);
+  if (gameIds.length === 0 || targets.length === 0) return {};
+  const [{ data: participants, error: participantsError }, { data: teams, error: teamsError }] = await Promise.all([
+    client.from('game_participants').select('game_id, team_id, score').in('game_id', gameIds),
+    client.from('teams').select('id, slug, name'),
+  ]);
+  if (participantsError) throw participantsError;
+  if (teamsError) throw teamsError;
+  const teamsById = new Map((teams || []).map((team) => [team.id, team]));
+  const summaries = Object.fromEntries(targets.map((target) => [target.key, { wins: 0, losses: 0, ties: 0, pointsFor: [], pointsAgainst: [] }]));
+  const participantsByGame = new Map();
+  for (const participant of participants || []) {
+    const list = participantsByGame.get(participant.game_id) || [];
+    list.push({ ...participant, team: teamsById.get(participant.team_id) });
+    participantsByGame.set(participant.game_id, list);
+  }
+  for (const gameParticipants of participantsByGame.values()) {
+    for (const participant of gameParticipants) {
+      const participantKey = normalizedTeam(participant.team?.slug || participant.team?.name);
+      const target = targets.find((candidate) => participantKey === candidate.key || participantKey.includes(candidate.key) || candidate.key.includes(participantKey));
+      const opponent = gameParticipants.find((candidate) => candidate !== participant);
+      if (!target || participant.score == null || opponent?.score == null) continue;
+      const summary = summaries[target.key];
+      const score = Number(participant.score);
+      const opponentScore = Number(opponent.score);
+      summary.pointsFor.push(score);
+      summary.pointsAgainst.push(opponentScore);
+      if (score > opponentScore) summary.wins += 1;
+      else if (score < opponentScore) summary.losses += 1;
+      else summary.ties += 1;
+    }
+  }
+  return Object.fromEntries(Object.entries(summaries).map(([key, summary]) => {
+    const gamesPlayed = summary.pointsFor.length;
+    return [key, {
+      record: `${summary.wins}-${summary.losses}${summary.ties > 0 ? `-${summary.ties}` : ''}`,
+      pointsFor: gamesPlayed > 0 ? summary.pointsFor.reduce((sum, value) => sum + value, 0) / gamesPlayed : null,
+      pointsAgainst: gamesPlayed > 0 ? summary.pointsAgainst.reduce((sum, value) => sum + value, 0) / gamesPlayed : null,
+    }];
+  }));
+}
+
 function scorePair(dukeScore, opponentScore) {
   return [Number(dukeScore), Number(opponentScore)].sort((left, right) => left - right).join('-');
 }
@@ -137,20 +191,22 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
   if (includeBulletin && nextGame && process.env.CFB_DATA_KEY) {
     try {
       const opponent = nextParticipants.find((participant) => !isDukeTeam(participant.team));
-      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats, dukeRecord, opponentRecord, dukePlayerStats, opponentPlayerStats] = await Promise.all([
+      const opponentName = opponent?.team?.name;
+      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats, dukeRecord, opponentRecord, dukePlayerStats, opponentPlayerStats, canonicalRecords] = await Promise.all([
         fetchCfbDataLines({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataPregameWinProbabilities({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
-        fetchCfbDataSeasonStats({ year: nextGame.season, team: opponent?.team?.name, endWeek: Math.max(1, nextGame.week - 1) }),
+        fetchCfbDataSeasonStats({ year: nextGame.season, team: opponentName, endWeek: Math.max(1, nextGame.week - 1) }),
         fetchCfbDataTeamGameStats({ year: nextGame.season, team: 'Duke' }),
-        fetchCfbDataTeamGameStats({ year: nextGame.season, team: opponent?.team?.name }),
+        fetchCfbDataTeamGameStats({ year: nextGame.season, team: opponentName }),
         fetchCfbDataTeamRecords({ year: nextGame.season, team: 'Duke' }),
-        fetchCfbDataTeamRecords({ year: nextGame.season, team: opponent?.team?.name }),
+        fetchCfbDataTeamRecords({ year: nextGame.season, team: opponentName }),
         fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
-        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: opponent?.team?.name, endWeek: Math.max(1, nextGame.week - 1) }),
+        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: opponentName, endWeek: Math.max(1, nextGame.week - 1) }),
+        loadCanonicalSeasonRecords(client, nextGame.season, ['Duke', opponentName]),
       ]);
       odds = findCfbDataOdds(lines, {
-        opponentName: opponent?.team?.name,
+        opponentName,
       });
       bulletinContext = buildBulletinContext({
         opponentName: opponent?.team?.name,
@@ -162,13 +218,14 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
         opponentRecord,
         dukePlayerStats,
         opponentPlayerStats,
+        canonicalRecords,
         lines,
         pregameProbabilities,
       });
       if (!odds && process.env.ODDS_API_KEY) {
         const oddsSnapshot = await fetchOddsApiSnapshot(nextGame, { apiKey: process.env.ODDS_API_KEY });
         odds = findUpcomingOdds(oddsSnapshot.data || [], {
-          opponentName: opponent?.team?.name,
+          opponentName,
           startAt: nextGame.start_at,
         });
       }

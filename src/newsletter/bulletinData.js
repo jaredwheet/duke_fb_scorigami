@@ -48,7 +48,7 @@ function oneDecimal(value) {
   return value == null ? null : value.toFixed(1).replace(/\.0$/, '');
 }
 
-function teamSummary(teamName, seasonStats, gameStats, recordOverride = null) {
+function teamSummary(teamName, seasonStats, gameStats, recordOverride = null, canonical = null) {
   const rows = teamGameRows(gameStats, teamName);
   const stats = statMap(seasonStats);
   const games = rows.length || findStat(stats, ['games', 'gamesPlayed']) || 0;
@@ -57,9 +57,10 @@ function teamSummary(teamName, seasonStats, gameStats, recordOverride = null) {
   const seasonRushingYards = findStat(stats, ['rushingyards', 'rushing']);
   const seasonPassingYards = findStat(stats, ['passingyards', 'passing']);
   const seasonFirstDowns = findStat(stats, ['firstdowns', 'firstdowns']);
-  const pointsFor = average(rows.map((row) => row.points))
+  const pointsFor = canonical?.pointsFor
+    ?? average(rows.map((row) => row.points))
     ?? (seasonPoints == null ? null : seasonPoints / Math.max(games, 1));
-  const pointsAgainst = average(rows.map((row) => row.opponentPoints));
+  const pointsAgainst = canonical?.pointsAgainst ?? average(rows.map((row) => row.opponentPoints));
   const totalYards = average(rows.map((row) => findStat(row.team, ['totalyards', 'totaloffense'])))
     ?? (seasonTotalYards == null ? null : seasonTotalYards / Math.max(games, 1));
   const rushingYards = average(rows.map((row) => findStat(row.team, ['rushingyards', 'rushing'])))
@@ -93,7 +94,7 @@ function teamSummary(teamName, seasonStats, gameStats, recordOverride = null) {
     rushYardsAllowed,
     passYardsAllowed,
     turnoverMargin,
-    record: recordOverride || (rows.length > 0 ? `${wins}-${losses}${ties > 0 ? `-${ties}` : ''}` : null),
+    record: canonical?.record || recordOverride || (rows.length > 0 ? `${wins}-${losses}${ties > 0 ? `-${ties}` : ''}` : null),
   };
 }
 
@@ -205,11 +206,12 @@ export function buildBulletinContext({
   opponentRecord = [],
   dukePlayerStats = [],
   opponentPlayerStats = [],
+  canonicalRecords = {},
   lines = [],
   pregameProbabilities = [],
 } = {}) {
-  const duke = teamSummary(dukeName, dukeSeasonStats, dukeGameStats, recordFromApi(dukeRecord, dukeName));
-  const opponent = teamSummary(opponentName, opponentSeasonStats, opponentGameStats, recordFromApi(opponentRecord, opponentName));
+  const duke = teamSummary(dukeName, dukeSeasonStats, dukeGameStats, recordFromApi(dukeRecord, dukeName), canonicalRecords[normalize(dukeName)]);
+  const opponent = teamSummary(opponentName, opponentSeasonStats, opponentGameStats, recordFromApi(opponentRecord, opponentName), canonicalRecords[normalize(opponentName)]);
   const odds = findCfbDataOdds(lines, { dukeName, opponentName });
   const probability = pregameProbabilities.find((game) => {
     const teams = [game.homeTeam, game.awayTeam].map(normalize);
