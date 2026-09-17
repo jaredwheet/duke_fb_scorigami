@@ -125,7 +125,7 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
 
   const { data: nextGames, error: nextError } = await client
     .from('games')
-    .select('id, season, start_at, venue_name, status')
+    .select('id, season, week, start_at, venue_name, status')
     .eq('status', 'scheduled')
     .gt('start_at', new Date().toISOString())
     .order('start_at', { ascending: true })
