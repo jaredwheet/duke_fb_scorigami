@@ -28,17 +28,6 @@ const deterministicIssueData = edition === 'watercooler'
     : { ...baseIssueData, issue_date_key: issueDate };
 const { issueData, html, chartBuffer, editorialResult } = await prepareNewsletter(deterministicIssueData);
 console.log(`Test edition: ${issueData.edition || 'sunday'}; issue date: ${issueDate}`);
-if (edition === 'bulletin') {
-  console.log(`Bulletin context: ${JSON.stringify({
-    nextOpponent: issueData.next_opponent,
-    recordSummary: issueData.bulletin_context?.recordSummary,
-    duke: issueData.bulletin_context?.duke,
-    opponent: issueData.bulletin_context?.opponent,
-    seasonRows: issueData.bulletin_context?.seasonRows,
-    lineRows: issueData.bulletin_context?.lineRows,
-    marketRows: issueData.bulletin_context?.marketRows,
-  })}`);
-}
 if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
 if (edition === 'sunday') {
   console.log(`Deterministic moment: ${deterministicIssueData.guide_context?.editorialMoment || deterministicIssueData.turning_point?.description || 'none'}`);
