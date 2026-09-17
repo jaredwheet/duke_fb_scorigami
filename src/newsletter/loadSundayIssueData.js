@@ -3,11 +3,12 @@ import { normalizeOpponentSlug } from '../mediaGuide/guideFacts.js';
 import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
 import {
   fetchCfbDataLines,
+  fetchCfbDataGames,
   fetchCfbDataPregameWinProbabilities,
   fetchCfbDataSeasonStats,
   fetchCfbDataTeamGameStats,
   fetchCfbDataTeamRecords,
-  fetchCfbDataPlayerSeasonStats,
+  fetchCfbDataPlayerGameStats,
 } from '../ingestion/providers/cfbData.js';
 import { fetchOddsApiSnapshot } from '../ingestion/providers/enrichments.js';
 import { loadAccContext } from './accData.js';
@@ -192,7 +193,7 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
     try {
       const opponent = nextParticipants.find((participant) => !isDukeTeam(participant.team));
       const opponentName = opponent?.team?.name;
-      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats, dukeRecord, opponentRecord, dukePlayerStats, opponentPlayerStats, canonicalRecords] = await Promise.all([
+      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats, dukeRecord, opponentRecord, dukePlayerGameStats, opponentPlayerGameStats, dukeGames, opponentGames, canonicalRecords] = await Promise.all([
         fetchCfbDataLines({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataPregameWinProbabilities({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
@@ -201,8 +202,10 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
         fetchCfbDataTeamGameStats({ year: nextGame.season, team: opponentName }),
         fetchCfbDataTeamRecords({ year: nextGame.season, team: 'Duke' }),
         fetchCfbDataTeamRecords({ year: nextGame.season, team: opponentName }),
-        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
-        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: opponentName, endWeek: Math.max(1, nextGame.week - 1) }),
+        fetchCfbDataPlayerGameStats({ year: nextGame.season, team: 'Duke' }),
+        fetchCfbDataPlayerGameStats({ year: nextGame.season, team: opponentName }),
+        fetchCfbDataGames({ year: nextGame.season, team: 'Duke' }),
+        fetchCfbDataGames({ year: nextGame.season, team: opponentName }),
         loadCanonicalSeasonRecords(client, nextGame.season, ['Duke', opponentName]),
       ]);
       odds = findCfbDataOdds(lines, {
@@ -216,8 +219,10 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
         opponentGameStats,
         dukeRecord,
         opponentRecord,
-        dukePlayerStats,
-        opponentPlayerStats,
+        dukePlayerGameStats,
+        opponentPlayerGameStats,
+        dukeGames,
+        opponentGames,
         canonicalRecords,
         lines,
         pregameProbabilities,

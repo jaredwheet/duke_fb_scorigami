@@ -109,34 +109,71 @@ function recordFromApi(records, teamName) {
   return `${total.wins}-${total.losses}${total.ties > 0 ? `-${total.ties}` : ''}`;
 }
 
-function keyPlayerRows(stats = [], teamName) {
+function completedGameResults(games = [], teamName) {
+  return games.flatMap((game) => {
+    const home = normalize(game.homeTeam);
+    const away = normalize(game.awayTeam);
+    const target = normalize(teamName);
+    const isHome = home === target || home.includes(target) || target.includes(home);
+    const isAway = away === target || away.includes(target) || target.includes(away);
+    const teamScore = isHome ? number(game.homePoints) : isAway ? number(game.awayPoints) : null;
+    const opponentScore = isHome ? number(game.awayPoints) : isAway ? number(game.homePoints) : null;
+    if (teamScore == null || opponentScore == null) return [];
+    return [{ teamScore, opponentScore }];
+  });
+}
+
+function playerGameRows(games = [], teamName) {
+  const target = normalize(teamName);
+  return games.flatMap((game) => {
+    const team = game.teams?.find((candidate) => {
+      const school = normalize(candidate.school?.name || candidate.school);
+      return school === target || school.includes(target) || target.includes(school);
+    });
+    if (!team) return [];
+    return (team.categories || []).flatMap((category) => (category.types || []).flatMap((type) => (type.athletes || []).map((athlete) => ({
+      gameId: game.id,
+      player: athlete.name,
+      playerId: athlete.id || athlete.name,
+      category: String(category.name || '').toLowerCase(),
+      statType: String(type.name || '').toLowerCase(),
+      value: number(athlete.stat),
+    }))));
+  });
+}
+
+function keyPlayerRows(games = [], teamName) {
   const players = new Map();
-  for (const row of stats) {
-    const player = row.player || row.name;
-    if (!player || row.stat == null) continue;
-    const key = row.playerId || player;
-    const value = number(row.stat);
-    if (value == null) continue;
-    const category = String(row.category || 'football').replaceAll('_', ' ');
-    const statType = String(row.statType || 'stat').replaceAll('_', ' ');
-    const list = players.get(key) || { player, teamName, entries: [] };
-    list.entries.push({ category, statType, value });
-    players.set(key, list);
+  for (const row of playerGameRows(games, teamName)) {
+    if (!row.player || row.value == null || /punt|kick|field goal|long snap/i.test(row.category)) continue;
+    const player = players.get(row.playerId) || {
+      player: row.player,
+      games: new Set(),
+      yards: 0,
+      touchdowns: 0,
+      tackles: 0,
+      sacks: 0,
+      role: row.category || 'football',
+    };
+    player.games.add(row.gameId);
+    if (/yd|yards/.test(row.statType)) player.yards += row.value;
+    if (/td|touchdown/.test(row.statType)) player.touchdowns += row.value;
+    if (/tackle|tkl/.test(row.statType)) player.tackles += row.value;
+    if (/sack/.test(row.statType)) player.sacks += row.value;
+    players.set(row.playerId, player);
   }
-  const categoryOrder = ['rushing', 'passing', 'receiving', 'defensive', 'tackles'];
   return [...players.values()]
     .map((player) => {
-      const entry = player.entries
-        .slice()
-        .sort((left, right) => {
-          const leftRank = categoryOrder.findIndex((category) => left.category.toLowerCase().includes(category));
-          const rightRank = categoryOrder.findIndex((category) => right.category.toLowerCase().includes(category));
-          return (leftRank < 0 ? 99 : leftRank) - (rightRank < 0 ? 99 : rightRank) || right.value - left.value;
-        })[0];
+      const gamesPlayed = Math.max(player.games.size, 1);
+      const parts = [];
+      if (player.yards > 0) parts.push(`${oneDecimal(player.yards / gamesPlayed)} YDS/G`);
+      if (player.touchdowns > 0) parts.push(`${oneDecimal(player.touchdowns)} TD`);
+      if (player.tackles > 0) parts.push(`${oneDecimal(player.tackles / gamesPlayed)} TKL/G`);
+      if (player.sacks > 0) parts.push(`${oneDecimal(player.sacks)} SACK`);
       return {
-        label: `${player.teamName.toUpperCase()} - ${player.player}`,
-        value: `${entry.category} ${entry.statType}: ${oneDecimal(entry.value)}`,
-        score: entry.value,
+        label: player.player,
+        value: `${player.role} | ${parts.join(', ') || 'season production pending'}`,
+        score: player.yards + (player.touchdowns * 50) + (player.tackles * 2) + (player.sacks * 15),
       };
     })
     .sort((left, right) => right.score - left.score)
@@ -204,14 +241,23 @@ export function buildBulletinContext({
   opponentGameStats = [],
   dukeRecord = [],
   opponentRecord = [],
-  dukePlayerStats = [],
-  opponentPlayerStats = [],
+  dukePlayerGameStats = [],
+  opponentPlayerGameStats = [],
+  dukeGames = [],
+  opponentGames = [],
   canonicalRecords = {},
   lines = [],
   pregameProbabilities = [],
 } = {}) {
-  const duke = teamSummary(dukeName, dukeSeasonStats, dukeGameStats, recordFromApi(dukeRecord, dukeName), canonicalRecords[normalize(dukeName)]);
-  const opponent = teamSummary(opponentName, opponentSeasonStats, opponentGameStats, recordFromApi(opponentRecord, opponentName), canonicalRecords[normalize(opponentName)]);
+  const dukeResults = completedGameResults(dukeGames, dukeName);
+  const opponentResults = completedGameResults(opponentGames, opponentName);
+  const resultSummary = (results) => results.length === 0 ? null : {
+    record: `${results.filter((result) => result.teamScore > result.opponentScore).length}-${results.filter((result) => result.teamScore < result.opponentScore).length}${results.filter((result) => result.teamScore === result.opponentScore).length > 0 ? `-${results.filter((result) => result.teamScore === result.opponentScore).length}` : ''}`,
+    pointsFor: results.reduce((sum, result) => sum + result.teamScore, 0) / results.length,
+    pointsAgainst: results.reduce((sum, result) => sum + result.opponentScore, 0) / results.length,
+  };
+  const duke = teamSummary(dukeName, dukeSeasonStats, dukeGameStats, recordFromApi(dukeRecord, dukeName), resultSummary(dukeResults) || canonicalRecords[normalize(dukeName)]);
+  const opponent = teamSummary(opponentName, opponentSeasonStats, opponentGameStats, recordFromApi(opponentRecord, opponentName), resultSummary(opponentResults) || canonicalRecords[normalize(opponentName)]);
   const odds = findCfbDataOdds(lines, { dukeName, opponentName });
   const probability = pregameProbabilities.find((game) => {
     const teams = [game.homeTeam, game.awayTeam].map(normalize);
@@ -270,7 +316,8 @@ export function buildBulletinContext({
     seasonRows,
     offenseRows,
     defenseRows,
-    playerRows: [...keyPlayerRows(dukePlayerStats, dukeName), ...keyPlayerRows(opponentPlayerStats, opponentName)],
+    dukePlayerRows: keyPlayerRows(dukePlayerGameStats, dukeName),
+    opponentPlayerRows: keyPlayerRows(opponentPlayerGameStats, opponentName),
     strengthRows,
     lineRows,
     marketRows,
