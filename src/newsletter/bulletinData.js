@@ -3,6 +3,7 @@ function normalize(value) {
 }
 
 function number(value) {
+  if (value == null || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -30,6 +31,7 @@ function teamGameRows(games = [], teamName) {
     const team = teamEntry(game, teamName);
     if (!team) return [];
     const opponent = (game.teams || []).find((candidate) => candidate !== team);
+    if (team.points == null && opponent?.points == null && !(team.stats?.length || opponent?.stats?.length)) return [];
     return [{
       team: statMap(team.stats),
       opponent: statMap(opponent?.stats),
@@ -46,6 +48,10 @@ function average(values) {
 
 function oneDecimal(value) {
   return value == null ? null : value.toFixed(1).replace(/\.0$/, '');
+}
+
+function whole(value) {
+  return value == null ? null : Math.round(value);
 }
 
 function teamSummary(teamName, seasonStats, gameStats, recordOverride = null, canonical = null) {
@@ -123,32 +129,17 @@ function completedGameResults(games = [], teamName) {
   });
 }
 
-function playerGameRows(games = [], teamName) {
-  const target = normalize(teamName);
-  return games.flatMap((game) => {
-    const team = game.teams?.find((candidate) => {
-      const school = normalize(candidate.school?.name || candidate.school);
-      return school === target || school.includes(target) || target.includes(school);
-    });
-    if (!team) return [];
-    return (team.categories || []).flatMap((category) => (category.types || []).flatMap((type) => (type.athletes || []).map((athlete) => ({
-      gameId: game.id,
-      player: athlete.name,
-      playerId: athlete.id || athlete.name,
-      category: String(category.name || '').toLowerCase(),
-      statType: String(type.name || '').toLowerCase(),
-      value: number(athlete.stat),
-    }))));
-  });
-}
-
-function leaderRows(games = [], teamName) {
+function leaderRows(stats = [], teamName, gamesPlayed = 1) {
   const players = new Map();
-  for (const row of playerGameRows(games, teamName)) {
-    if (!row.player || row.value == null || /punt|kick|field goal|long snap/i.test(row.category)) continue;
+  const target = normalize(teamName);
+  for (const row of stats) {
+    const rowTeam = normalize(row.team);
+    if (!row.player || rowTeam !== target || row.stat == null || /punt|kick|field goal|long snap/i.test(row.category || '')) continue;
+    const value = number(row.stat);
+    if (value == null) continue;
     const player = players.get(row.playerId) || {
       player: row.player,
-      games: new Set(),
+      games: gamesPlayed,
       passingYards: 0,
       passingTouchdowns: 0,
       rushingYards: 0,
@@ -158,18 +149,18 @@ function leaderRows(games = [], teamName) {
       tackles: 0,
       interceptions: 0,
     };
-    player.games.add(row.gameId);
-    const yards = /yd|yards/.test(row.statType);
-    const touchdowns = /td|touchdown/.test(row.statType);
-    const category = row.category;
-    if (category.includes('pass') && yards) player.passingYards += row.value;
-    if (category.includes('pass') && touchdowns) player.passingTouchdowns += row.value;
-    if (category.includes('rush') && yards) player.rushingYards += row.value;
-    if (category.includes('rush') && touchdowns) player.rushingTouchdowns += row.value;
-    if (category.includes('receiv') && yards) player.receivingYards += row.value;
-    if (category.includes('receiv') && touchdowns) player.receivingTouchdowns += row.value;
-    if (/tackle|tkl/.test(row.statType)) player.tackles += row.value;
-    if (/int|interception/.test(row.statType)) player.interceptions += row.value;
+    const statType = String(row.statType || '').toLowerCase();
+    const yards = /yd|yards/.test(statType);
+    const touchdowns = /td|touchdown/.test(statType);
+    const category = String(row.category || '').toLowerCase();
+    if (category.includes('pass') && yards) player.passingYards += value;
+    if (category.includes('pass') && touchdowns) player.passingTouchdowns += value;
+    if (category.includes('rush') && yards) player.rushingYards += value;
+    if (category.includes('rush') && touchdowns) player.rushingTouchdowns += value;
+    if (category.includes('receiv') && yards) player.receivingYards += value;
+    if (category.includes('receiv') && touchdowns) player.receivingTouchdowns += value;
+    if (/tackle|tkl/.test(statType)) player.tackles += value;
+    if (/int|interception/.test(statType)) player.interceptions += value;
     players.set(row.playerId, player);
   }
   const leaders = [
@@ -197,10 +188,10 @@ function leaderRows(games = [], teamName) {
   return leaders.flatMap((leader) => {
     const player = [...players.values()].sort((left, right) => right[leader.field] - left[leader.field])[0];
     if (!player || player[leader.field] <= 0) return [];
-    const gamesPlayed = Math.max(player.games.size, 1);
+    const playerGames = Math.max(player.games, 1);
     const value = leader.metric === 'INT'
       ? `${player.player} | ${oneDecimal(player[leader.field])} INT`
-      : `${player.player} | ${oneDecimal(player[leader.field] / gamesPlayed)} ${leader.metric}${leader.touchdownField && player[leader.touchdownField] > 0 ? `, ${oneDecimal(player[leader.touchdownField])} TD` : ''}`;
+      : `${player.player} | ${Math.round(player[leader.field] / playerGames)} ${leader.metric}${leader.touchdownField && player[leader.touchdownField] > 0 ? `, ${oneDecimal(player[leader.touchdownField])} TD` : ''}`;
     return [{ label: leader.label, value }];
   });
 }
@@ -208,9 +199,9 @@ function leaderRows(games = [], teamName) {
 function formatTeamSummary(summary) {
   const parts = [];
   if (summary.pointsFor != null) parts.push(`${oneDecimal(summary.pointsFor)} points/game`);
-  if (summary.totalYards != null) parts.push(`${oneDecimal(summary.totalYards)} total yards/game`);
-  if (summary.rushingYards != null) parts.push(`${oneDecimal(summary.rushingYards)} rushing yards/game`);
-  if (summary.passingYards != null) parts.push(`${oneDecimal(summary.passingYards)} passing yards/game`);
+  if (summary.totalYards != null) parts.push(`${whole(summary.totalYards)} total yards/game`);
+  if (summary.rushingYards != null) parts.push(`${whole(summary.rushingYards)} rushing yards/game`);
+  if (summary.passingYards != null) parts.push(`${whole(summary.passingYards)} passing yards/game`);
   return parts.length > 0 ? `${summary.teamName}: ${parts.join('; ')}.` : `${summary.teamName}: season totals are not available yet.`;
 }
 
@@ -265,8 +256,8 @@ export function buildBulletinContext({
   opponentGameStats = [],
   dukeRecord = [],
   opponentRecord = [],
-  dukePlayerGameStats = [],
-  opponentPlayerGameStats = [],
+  dukePlayerStats = [],
+  opponentPlayerStats = [],
   dukeGames = [],
   opponentGames = [],
   canonicalRecords = {},
@@ -295,29 +286,29 @@ export function buildBulletinContext({
     ? null
     : Math.round((normalize(probability.homeTeam).includes(normalize(dukeName)) ? probability.homeWinProb : 1 - probability.homeWinProb) * 100);
   const strengths = [];
-  if (duke.rushingYards != null) strengths.push(`${dukeName} is averaging ${oneDecimal(duke.rushingYards)} rushing yards per game`);
-  if (opponent.yardsAllowed != null) strengths.push(`${opponentName} is allowing ${oneDecimal(opponent.yardsAllowed)} total yards per game`);
-  if (duke.passingYards != null) strengths.push(`${dukeName} is averaging ${oneDecimal(duke.passingYards)} passing yards per game`);
-  if (opponent.rushingYards != null) strengths.push(`${opponentName} is averaging ${oneDecimal(opponent.rushingYards)} rushing yards per game`);
+  if (duke.rushingYards != null) strengths.push(`${dukeName} is averaging ${whole(duke.rushingYards)} rushing yards per game`);
+  if (opponent.yardsAllowed != null) strengths.push(`${opponentName} is allowing ${whole(opponent.yardsAllowed)} total yards per game`);
+  if (duke.passingYards != null) strengths.push(`${dukeName} is averaging ${whole(duke.passingYards)} passing yards per game`);
+  if (opponent.rushingYards != null) strengths.push(`${opponentName} is averaging ${whole(opponent.rushingYards)} rushing yards per game`);
 
   const offenseRows = [
     { label: 'POINTS / GAME', duke: oneDecimal(duke.pointsFor), opponent: oneDecimal(opponent.pointsFor) },
-    { label: 'RUSH YARDS / GAME', duke: oneDecimal(duke.rushingYards), opponent: oneDecimal(opponent.rushingYards) },
-    { label: 'PASS YARDS / GAME', duke: oneDecimal(duke.passingYards), opponent: oneDecimal(opponent.passingYards) },
-    { label: 'TOTAL YARDS / GAME', duke: oneDecimal(duke.totalYards), opponent: oneDecimal(opponent.totalYards) },
+    { label: 'RUSH YARDS / GAME', duke: whole(duke.rushingYards), opponent: whole(opponent.rushingYards) },
+    { label: 'PASS YARDS / GAME', duke: whole(duke.passingYards), opponent: whole(opponent.passingYards) },
+    { label: 'TOTAL YARDS / GAME', duke: whole(duke.totalYards), opponent: whole(opponent.totalYards) },
   ].filter((row) => row.duke != null || row.opponent != null);
   const defenseRows = [
     { label: 'POINTS ALLOWED / GAME', duke: oneDecimal(duke.pointsAgainst), opponent: oneDecimal(opponent.pointsAgainst) },
-    { label: 'RUSH YARDS ALLOWED / GAME', duke: oneDecimal(duke.rushYardsAllowed), opponent: oneDecimal(opponent.rushYardsAllowed) },
-    { label: 'PASS YARDS ALLOWED / GAME', duke: oneDecimal(duke.passYardsAllowed), opponent: oneDecimal(opponent.passYardsAllowed) },
-    { label: 'TOTAL YARDS ALLOWED / GAME', duke: oneDecimal(duke.yardsAllowed), opponent: oneDecimal(opponent.yardsAllowed) },
+    { label: 'RUSH YARDS ALLOWED / GAME', duke: whole(duke.rushYardsAllowed), opponent: whole(opponent.rushYardsAllowed) },
+    { label: 'PASS YARDS ALLOWED / GAME', duke: whole(duke.passYardsAllowed), opponent: whole(opponent.passYardsAllowed) },
+    { label: 'TOTAL YARDS ALLOWED / GAME', duke: whole(duke.yardsAllowed), opponent: whole(opponent.yardsAllowed) },
     { label: 'TURNOVER MARGIN / GAME', duke: oneDecimal(duke.turnoverMargin), opponent: oneDecimal(opponent.turnoverMargin) },
   ].filter((row) => row.duke != null || row.opponent != null);
   const seasonRows = [...offenseRows, ...defenseRows];
   const strengthRows = [
-    duke.rushingYards != null ? { label: dukeName.toUpperCase(), value: `Averaging ${oneDecimal(duke.rushingYards)} rushing yards per game.` } : null,
-    opponent.yardsAllowed != null ? { label: opponentName.toUpperCase(), value: `Allowing ${oneDecimal(opponent.yardsAllowed)} total yards per game.` } : null,
-    duke.passingYards != null ? { label: `${dukeName.toUpperCase()} AIR`, value: `Averaging ${oneDecimal(duke.passingYards)} passing yards per game.` } : null,
+    duke.rushingYards != null ? { label: dukeName.toUpperCase(), value: `Averaging ${whole(duke.rushingYards)} rushing yards per game.` } : null,
+    opponent.yardsAllowed != null ? { label: opponentName.toUpperCase(), value: `Allowing ${whole(opponent.yardsAllowed)} total yards per game.` } : null,
+    duke.passingYards != null ? { label: `${dukeName.toUpperCase()} AIR`, value: `Averaging ${whole(duke.passingYards)} passing yards per game.` } : null,
   ].filter(Boolean);
   const lineRows = odds?.lineRows || [];
   const marketRows = [
@@ -326,10 +317,10 @@ export function buildBulletinContext({
   ].filter(Boolean);
   const matchupRows = [
     { label: 'POINTS / GAME', duke: oneDecimal(duke.pointsFor), opponent: oneDecimal(opponent.pointsFor) },
-    { label: 'RUSH YARDS / GAME', duke: oneDecimal(duke.rushingYards), opponent: oneDecimal(opponent.rushingYards) },
-    { label: 'PASS YARDS / GAME', duke: oneDecimal(duke.passingYards), opponent: oneDecimal(opponent.passingYards) },
-    { label: 'TOTAL YARDS / GAME', duke: oneDecimal(duke.totalYards), opponent: oneDecimal(opponent.totalYards) },
-    { label: 'YARDS ALLOWED / GAME', duke: oneDecimal(duke.yardsAllowed), opponent: oneDecimal(opponent.yardsAllowed) },
+    { label: 'RUSH YARDS / GAME', duke: whole(duke.rushingYards), opponent: whole(opponent.rushingYards) },
+    { label: 'PASS YARDS / GAME', duke: whole(duke.passingYards), opponent: whole(opponent.passingYards) },
+    { label: 'TOTAL YARDS / GAME', duke: whole(duke.totalYards), opponent: whole(opponent.totalYards) },
+    { label: 'YARDS ALLOWED / GAME', duke: whole(duke.yardsAllowed), opponent: whole(opponent.yardsAllowed) },
   ].filter((row) => row.duke != null || row.opponent != null);
 
   return {
@@ -340,8 +331,8 @@ export function buildBulletinContext({
     seasonRows,
     offenseRows,
     defenseRows,
-    dukePlayerRows: leaderRows(dukePlayerGameStats, dukeName),
-    opponentPlayerRows: leaderRows(opponentPlayerGameStats, opponentName),
+    dukePlayerRows: leaderRows(dukePlayerStats, dukeName, dukeResults.length || 1),
+    opponentPlayerRows: leaderRows(opponentPlayerStats, opponentName, opponentResults.length || 1),
     strengthRows,
     lineRows,
     marketRows,
