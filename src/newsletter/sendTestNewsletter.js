@@ -15,7 +15,10 @@ if (!recipient) throw new Error('NEWSLETTER_TEST_TO is required');
 
 const resend = new Resend(apiKey);
 const baseIssueData = process.env.NEWSLETTER_USE_LIVE_DATA === 'true'
-  ? await loadLatestSundayIssueData(undefined, { includeOdds: edition === 'bulletin' })
+  ? await loadLatestSundayIssueData(undefined, {
+    includeOdds: edition === 'bulletin',
+    includeWatercooler: edition === 'watercooler',
+  })
   : {};
 const deterministicIssueData = edition === 'watercooler'
   ? buildWatercoolerIssueData(baseIssueData, { issueDate })

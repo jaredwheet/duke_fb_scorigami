@@ -20,7 +20,10 @@ if (!recipient) throw new Error('NEWSLETTER_TO or NEWSLETTER_TEST_TO is required
 
 async function loadIssueData(publication, issueDate) {
   try {
-    const baseIssueData = await loadLatestSundayIssueData(supabase, { includeOdds: publication.edition === 'bulletin' });
+    const baseIssueData = await loadLatestSundayIssueData(supabase, {
+      includeOdds: publication.edition === 'bulletin',
+      includeWatercooler: publication.edition === 'watercooler',
+    });
     if (!baseIssueData) return null;
     if (publication.edition === 'bulletin') {
       if (!baseIssueData.next_game_id) {

@@ -15,6 +15,14 @@ const baseIssue = {
     historicalFact: { statement: 'The archive remembers this matchup.' },
     recordWatch: { statement: 'A program record is within reach.' },
   },
+  watercooler_context: {
+    upcomingOpponent: 'Stanford',
+    weekLabel: 'September 14-20',
+    weekSummary: 'Duke has 2 archived games on these calendar dates.',
+    opponentHistory: 'Duke trails the Stanford series 1-3.',
+    historicalFact: 'Duke last beat Stanford in 1971.',
+    recentOpponentGames: ['September 20, 2025: Duke 21-24 vs Stanford'],
+  },
 };
 
 test('builds the Wallace Wade Watercooler contract', () => {
@@ -25,7 +33,9 @@ test('builds the Wallace Wade Watercooler contract', () => {
     edition_name: 'THE WALLACE WADE WATERCOOLER',
     issue_date_key: '2026-09-16',
   });
-  expect(issue.brief_sections[0].detail).toBe('Duke leads the series 2-1.');
+  expect(issue.brief_sections[0].detail).toBe('Duke has 2 archived games on these calendar dates.');
+  expect(issue.brief_sections[1].detail).toBe('Duke trails the Stanford series 1-3.');
+  expect(issue.brief_lead).not.toContain('Duke won a road game');
 });
 
 test('builds the Victory Bell Bulletin without inventing betting lines', () => {

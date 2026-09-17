@@ -6,6 +6,7 @@ import { loadAccContext } from './accData.js';
 import { buildGuideContext } from './guideContext.js';
 import { buildSundayIssueData } from './issueData.js';
 import { findUpcomingOdds } from './odds.js';
+import { loadWatercoolerContext } from './watercoolerData.js';
 
 function isDuke(participant) {
   return participant?.team?.slug === 'duke' || participant?.team?.name?.toLowerCase() === 'duke';
@@ -92,7 +93,7 @@ function findNextGuideSchedule(guide, nextGame, nextParticipants) {
   return seasonContext?.schedule.find((entry) => normalizeOpponentSlug(entry.opponent) === normalizeOpponentSlug(opponent?.team?.name));
 }
 
-export async function loadLatestSundayIssueData(client = supabase, { includeOdds = false } = {}) {
+export async function loadLatestSundayIssueData(client = supabase, { includeOdds = false, includeWatercooler = false } = {}) {
   const { data: games, error: gamesError } = await client
     .from('games')
     .select('id, season, week, start_at, status, venue_name')
@@ -173,6 +174,15 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
     console.warn(`Around the ACC data unavailable: ${error.message}`);
   }
 
+  let watercoolerContext = null;
+  if (includeWatercooler && nextGame) {
+    try {
+      watercoolerContext = await loadWatercoolerContext(client, { guide, nextGame, nextParticipants });
+    } catch (error) {
+      console.warn(`Watercooler archive data unavailable: ${error.message}`);
+    }
+  }
+
   return buildSundayIssueData({
     game,
     participants,
@@ -185,6 +195,7 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
     nextParticipants,
     nextSchedule: findNextGuideSchedule(guide, nextGame, nextParticipants),
     odds,
+    watercoolerContext,
     scorigamiHistory,
     accContext,
   });

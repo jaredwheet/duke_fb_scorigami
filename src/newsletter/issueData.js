@@ -542,6 +542,7 @@ export function buildSundayIssueData({
   scorigamiHistory = [],
   accContext = null,
   odds = null,
+  watercoolerContext = null,
 }) {
   const scores = getScoreDetails(game, participants);
   const dukeName = participants.find((participant) => isDuke(participant.team))?.team?.name || 'Duke';
@@ -623,6 +624,7 @@ export function buildSundayIssueData({
     next_game_start_at: nextGame?.start_at || null,
     next_schedule: nextSchedule,
     odds,
+    watercooler_context: watercoolerContext,
     source_url: `https://www.winsipedia.com/duke/schedule/${game.season}`,
     footer_text: 'A quick read on the game, the numbers, and what comes next.',
     unsubscribe_url: 'https://example.com/unsubscribe',
