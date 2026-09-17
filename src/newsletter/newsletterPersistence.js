@@ -1,5 +1,5 @@
 export const DEFAULT_PUBLICATION_KEY = 'devil-in-details';
-const SECTION_KEY = 'sunday';
+const DEFAULT_SECTION_KEY = 'sunday';
 const TEMPLATE_VERSION = 'v1';
 
 function isUniqueViolation(error) {
@@ -56,14 +56,36 @@ async function loadIssue(client, publicationKey, issueDate) {
   return data;
 }
 
+async function loadIssueForGame(client, gameId, sectionKey) {
+  const { data: links, error: linksError } = await client
+    .from('newsletter_issue_games')
+    .select('issue_id')
+    .eq('game_id', gameId)
+    .eq('section_key', sectionKey)
+    .limit(1);
+  if (linksError) throw linksError;
+  const issueId = links?.[0]?.issue_id;
+  if (!issueId) return null;
+
+  const { data, error } = await client
+    .from('newsletter_issues')
+    .select('id, publication_key, issue_date, status')
+    .eq('id', issueId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 async function getOrCreateIssue(client, {
   publicationKey,
+  sectionKey,
   issueDate,
   gameId,
   subject,
   previewText,
 }) {
-  let issue = await loadIssue(client, publicationKey, issueDate);
+  let issue = await loadIssueForGame(client, gameId, sectionKey);
+  if (!issue) issue = await loadIssue(client, publicationKey, issueDate);
   if (!issue) {
     const { data, error } = await client
       .from('newsletter_issues')
@@ -86,7 +108,7 @@ async function getOrCreateIssue(client, {
     .from('newsletter_issue_games')
     .select('game_id')
     .eq('issue_id', issue.id)
-    .eq('section_key', SECTION_KEY);
+    .eq('section_key', sectionKey);
   if (linkedGamesError) throw linkedGamesError;
   if (linkedGames?.some((row) => Number(row.game_id) !== Number(gameId))) {
     throw new Error(`Newsletter issue date collision: ${publicationKey}/${issueDate}`);
@@ -94,7 +116,7 @@ async function getOrCreateIssue(client, {
 
   const { error: linkError } = await client
     .from('newsletter_issue_games')
-    .upsert({ issue_id: issue.id, game_id: gameId, section_key: SECTION_KEY, position: 0 }, {
+    .upsert({ issue_id: issue.id, game_id: gameId, section_key: sectionKey, position: 0 }, {
       onConflict: 'issue_id,game_id,section_key',
     });
   if (linkError) throw linkError;
@@ -125,6 +147,7 @@ async function loadDelivery(client, issueId, subscriberId) {
 export async function claimNewsletterDelivery(client, {
   email,
   publicationKey = DEFAULT_PUBLICATION_KEY,
+  sectionKey = DEFAULT_SECTION_KEY,
   issueDate,
   gameId,
   subject,
@@ -136,6 +159,7 @@ export async function claimNewsletterDelivery(client, {
   const subscriber = await getOrCreateSubscriber(client, email);
   const issue = await getOrCreateIssue(client, {
     publicationKey,
+    sectionKey,
     issueDate,
     gameId,
     subject,

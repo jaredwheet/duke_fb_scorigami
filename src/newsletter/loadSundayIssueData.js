@@ -1,9 +1,15 @@
 import supabase from '../supabaseClient.js';
 import { normalizeOpponentSlug } from '../mediaGuide/guideFacts.js';
 import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
+import { fetchOddsApiSnapshot } from '../ingestion/providers/enrichments.js';
 import { loadAccContext } from './accData.js';
 import { buildGuideContext } from './guideContext.js';
 import { buildSundayIssueData } from './issueData.js';
+import { findUpcomingOdds } from './odds.js';
+
+function isDuke(participant) {
+  return participant?.team?.slug === 'duke' || participant?.team?.name?.toLowerCase() === 'duke';
+}
 
 async function loadParticipants(client, gameId) {
   const [{ data: participants, error: participantError }, { data: teams, error: teamError }] = await Promise.all([
@@ -86,7 +92,7 @@ function findNextGuideSchedule(guide, nextGame, nextParticipants) {
   return seasonContext?.schedule.find((entry) => normalizeOpponentSlug(entry.opponent) === normalizeOpponentSlug(opponent?.team?.name));
 }
 
-export async function loadLatestSundayIssueData(client = supabase) {
+export async function loadLatestSundayIssueData(client = supabase, { includeOdds = false } = {}) {
   const { data: games, error: gamesError } = await client
     .from('games')
     .select('id, season, week, start_at, status, venue_name')
@@ -119,6 +125,19 @@ export async function loadLatestSundayIssueData(client = supabase) {
   if (nextError) throw nextError;
   const nextGame = nextGames?.[0] || null;
   const nextParticipants = nextGame ? await loadParticipants(client, nextGame.id) : [];
+  let odds = null;
+  if (includeOdds && nextGame && process.env.ODDS_API_KEY) {
+    try {
+      const oddsSnapshot = await fetchOddsApiSnapshot(nextGame, { apiKey: process.env.ODDS_API_KEY });
+      const opponent = nextParticipants.find((participant) => !isDuke(participant.team));
+      odds = findUpcomingOdds(oddsSnapshot.data || [], {
+        opponentName: opponent?.team?.name,
+        startAt: nextGame.start_at,
+      });
+    } catch (error) {
+      console.warn(`Odds data unavailable: ${error.message}`);
+    }
+  }
 
   const scoreFacts = factRows?.[0]?.value?.scorigami || {};
   let scorigamiHistory = [];
@@ -165,6 +184,7 @@ export async function loadLatestSundayIssueData(client = supabase) {
     nextGame,
     nextParticipants,
     nextSchedule: findNextGuideSchedule(guide, nextGame, nextParticipants),
+    odds,
     scorigamiHistory,
     accContext,
   });

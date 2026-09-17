@@ -541,6 +541,7 @@ export function buildSundayIssueData({
   nextSchedule = null,
   scorigamiHistory = [],
   accContext = null,
+  odds = null,
 }) {
   const scores = getScoreDetails(game, participants);
   const dukeName = participants.find((participant) => isDuke(participant.team))?.team?.name || 'Duke';
@@ -575,6 +576,8 @@ export function buildSundayIssueData({
   const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
 
   return {
+    publication_key: 'devil-in-details',
+    edition: 'sunday',
     game_id: game.id,
     issue_date_key: formatIssueDateKey(game.start_at),
     subject: `Devil in the Details: Duke ${scores.dukeScore}-${scores.opponentScore}`,
@@ -616,6 +619,10 @@ export function buildSundayIssueData({
     acc_context: accContext,
     next_opponent: nextOpponent,
     next_details: nextDetails,
+    next_game_id: nextGame?.id || null,
+    next_game_start_at: nextGame?.start_at || null,
+    next_schedule: nextSchedule,
+    odds,
     source_url: `https://www.winsipedia.com/duke/schedule/${game.season}`,
     footer_text: 'A quick read on the game, the numbers, and what comes next.',
     unsubscribe_url: 'https://example.com/unsubscribe',
