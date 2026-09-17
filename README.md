@@ -39,7 +39,7 @@ That workflow also recalculates canonical Scorigami facts and persists tiered ed
 
 For email testing, add `RESEND_API_KEY` and `NEWSLETTER_TEST_TO` as GitHub Actions secrets, then run the manual **Newsletter Test** workflow. It uses Resend's `onboarding@resend.dev` test sender and does not send to the subscriber table.
 
-The **Duke Newsletter** workflow runs every 15 minutes and sends one issue per newly completed canonical game. Set `NEWSLETTER_TO` to the initial recipient; it falls back to `NEWSLETTER_TEST_TO` while the publication is in single-recipient testing. Issue and delivery state are persisted in `newsletter_issues`, `newsletter_issue_games`, `newsletter_subscribers`, and `newsletter_deliveries`, so scheduled retries do not resend a completed issue.
+The **Duke Newsletter** workflow runs every 15 minutes and releases three ET-timed publications: **Devil in the Details** on Sunday at 7:00 AM, **The Wallace Wade Watercooler** on Wednesday at noon, and **The Victory Bell Bulletin** on Friday at 9:00 AM. Set `NEWSLETTER_TO` to the initial recipient; it falls back to `NEWSLETTER_TEST_TO` while the publication is in single-recipient testing. Issue and delivery state are persisted in `newsletter_issues`, `newsletter_issue_games`, `newsletter_subscribers`, and `newsletter_deliveries`, so scheduled retries do not resend a completed edition. The Friday bulletin uses the existing `CFB_DATA_KEY` for closing lines, pregame win probabilities, and season stats; `ODDS_API_KEY` remains an optional fallback provider.
 
 ## Media Guide Reference Data
 
