@@ -44,6 +44,76 @@ export async function fetchCfbDataWeekGames({
   return games;
 }
 
+export async function fetchCfbDataLines({
+  year,
+  week,
+  team = 'Duke',
+  seasonType = 'regular',
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey) return [];
+  const url = new URL('https://api.collegefootballdata.com/lines');
+  if (year != null) url.searchParams.set('year', String(year));
+  if (week != null) url.searchParams.set('week', String(week));
+  if (team) url.searchParams.set('team', team);
+  url.searchParams.set('seasonType', seasonType);
+  const lines = await fetchJson(url, apiKey);
+  if (!Array.isArray(lines)) throw new Error('CFBData lines response was not an array');
+  return lines;
+}
+
+export async function fetchCfbDataPregameWinProbabilities({
+  year,
+  week,
+  team = 'Duke',
+  seasonType = 'regular',
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey) return [];
+  const url = new URL('https://api.collegefootballdata.com/metrics/wp/pregame');
+  if (year != null) url.searchParams.set('year', String(year));
+  if (week != null) url.searchParams.set('week', String(week));
+  if (team) url.searchParams.set('team', team);
+  url.searchParams.set('seasonType', seasonType);
+  const probabilities = await fetchJson(url, apiKey);
+  if (!Array.isArray(probabilities)) throw new Error('CFBData pregame probabilities response was not an array');
+  return probabilities;
+}
+
+export async function fetchCfbDataSeasonStats({
+  year,
+  team,
+  startWeek,
+  endWeek,
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey || !team) return [];
+  const url = new URL('https://api.collegefootballdata.com/stats/season');
+  url.searchParams.set('year', String(year));
+  url.searchParams.set('team', team);
+  if (startWeek != null) url.searchParams.set('startWeek', String(startWeek));
+  if (endWeek != null) url.searchParams.set('endWeek', String(endWeek));
+  const stats = await fetchJson(url, apiKey);
+  if (!Array.isArray(stats)) throw new Error('CFBData season stats response was not an array');
+  return stats;
+}
+
+export async function fetchCfbDataTeamGameStats({
+  year,
+  team,
+  seasonType = 'regular',
+  apiKey = process.env.CFB_DATA_KEY,
+} = {}) {
+  if (!apiKey || !team) return [];
+  const url = new URL('https://api.collegefootballdata.com/games/teams');
+  url.searchParams.set('year', String(year));
+  url.searchParams.set('team', team);
+  url.searchParams.set('seasonType', seasonType);
+  const stats = await fetchJson(url, apiKey);
+  if (!Array.isArray(stats)) throw new Error('CFBData team-game stats response was not an array');
+  return stats;
+}
+
 export async function fetchCfbDataConferenceRecords({
   year = new Date().getFullYear(),
   conference = 'ACC',

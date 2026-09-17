@@ -1,11 +1,18 @@
 import supabase from '../supabaseClient.js';
 import { normalizeOpponentSlug } from '../mediaGuide/guideFacts.js';
 import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
+import {
+  fetchCfbDataLines,
+  fetchCfbDataPregameWinProbabilities,
+  fetchCfbDataSeasonStats,
+  fetchCfbDataTeamGameStats,
+} from '../ingestion/providers/cfbData.js';
 import { fetchOddsApiSnapshot } from '../ingestion/providers/enrichments.js';
 import { loadAccContext } from './accData.js';
 import { buildGuideContext } from './guideContext.js';
 import { buildSundayIssueData } from './issueData.js';
 import { findUpcomingOdds } from './odds.js';
+import { buildBulletinContext, findCfbDataOdds } from './bulletinData.js';
 import { loadWatercoolerContext } from './watercoolerData.js';
 
 function isDuke(participant) {
@@ -93,7 +100,7 @@ function findNextGuideSchedule(guide, nextGame, nextParticipants) {
   return seasonContext?.schedule.find((entry) => normalizeOpponentSlug(entry.opponent) === normalizeOpponentSlug(opponent?.team?.name));
 }
 
-export async function loadLatestSundayIssueData(client = supabase, { includeOdds = false, includeWatercooler = false } = {}) {
+export async function loadLatestSundayIssueData(client = supabase, { includeOdds = false, includeWatercooler = false, includeBulletin = false } = {}) {
   const { data: games, error: gamesError } = await client
     .from('games')
     .select('id, season, week, start_at, status, venue_name')
@@ -127,14 +134,37 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
   const nextGame = nextGames?.[0] || null;
   const nextParticipants = nextGame ? await loadParticipants(client, nextGame.id) : [];
   let odds = null;
-  if (includeOdds && nextGame && process.env.ODDS_API_KEY) {
+  let bulletinContext = null;
+  if (includeBulletin && nextGame && process.env.CFB_DATA_KEY) {
     try {
-      const oddsSnapshot = await fetchOddsApiSnapshot(nextGame, { apiKey: process.env.ODDS_API_KEY });
       const opponent = nextParticipants.find((participant) => !isDuke(participant.team));
-      odds = findUpcomingOdds(oddsSnapshot.data || [], {
+      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats] = await Promise.all([
+        fetchCfbDataLines({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
+        fetchCfbDataPregameWinProbabilities({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
+        fetchCfbDataSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
+        fetchCfbDataSeasonStats({ year: nextGame.season, team: opponent?.team?.name, endWeek: Math.max(1, nextGame.week - 1) }),
+        fetchCfbDataTeamGameStats({ year: nextGame.season, team: 'Duke' }),
+        fetchCfbDataTeamGameStats({ year: nextGame.season, team: opponent?.team?.name }),
+      ]);
+      odds = findCfbDataOdds(lines, {
         opponentName: opponent?.team?.name,
-        startAt: nextGame.start_at,
       });
+      bulletinContext = buildBulletinContext({
+        opponentName: opponent?.team?.name,
+        dukeSeasonStats,
+        opponentSeasonStats,
+        dukeGameStats,
+        opponentGameStats,
+        lines,
+        pregameProbabilities,
+      });
+      if (!odds && process.env.ODDS_API_KEY) {
+        const oddsSnapshot = await fetchOddsApiSnapshot(nextGame, { apiKey: process.env.ODDS_API_KEY });
+        odds = findUpcomingOdds(oddsSnapshot.data || [], {
+          opponentName: opponent?.team?.name,
+          startAt: nextGame.start_at,
+        });
+      }
     } catch (error) {
       console.warn(`Odds data unavailable: ${error.message}`);
     }
@@ -195,6 +225,7 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
     nextParticipants,
     nextSchedule: findNextGuideSchedule(guide, nextGame, nextParticipants),
     odds,
+    bulletinContext,
     watercoolerContext,
     scorigamiHistory,
     accContext,

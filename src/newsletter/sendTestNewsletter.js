@@ -18,6 +18,7 @@ const baseIssueData = process.env.NEWSLETTER_USE_LIVE_DATA === 'true'
   ? await loadLatestSundayIssueData(undefined, {
     includeOdds: edition === 'bulletin',
     includeWatercooler: edition === 'watercooler' || edition === 'bulletin',
+    includeBulletin: edition === 'bulletin',
   })
   : {};
 const deterministicIssueData = edition === 'watercooler'

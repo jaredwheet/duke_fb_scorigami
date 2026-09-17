@@ -1,4 +1,5 @@
 import { findUpcomingOdds } from './odds.js';
+import { findCfbDataOdds } from './bulletinData.js';
 
 test('formats the Duke side of an upcoming odds board', () => {
   const odds = findUpcomingOdds([
@@ -25,4 +26,15 @@ test('formats the Duke side of an upcoming odds board', () => {
 
 test('returns no odds when the event is not available', () => {
   expect(findUpcomingOdds([], { opponentName: 'Stanford' })).toBeNull();
+});
+
+test('formats closing lines from the free CollegeFootballData feed', () => {
+  const odds = findCfbDataOdds([{
+    homeTeam: 'Duke',
+    awayTeam: 'Stanford',
+    lines: [{ provider: 'Consensus', formattedSpread: 'Duke -3.5', spread: -3.5, overUnder: 51.5, homeMoneyline: -155, awayMoneyline: 130 }],
+  }], { opponentName: 'Stanford' });
+
+  expect(odds.summary).toContain('Duke -3.5');
+  expect(odds.winProbability).toContain('Market-implied Duke win chance');
 });

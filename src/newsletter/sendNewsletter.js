@@ -23,6 +23,7 @@ async function loadIssueData(publication, issueDate) {
     const baseIssueData = await loadLatestSundayIssueData(supabase, {
       includeOdds: publication.edition === 'bulletin',
       includeWatercooler: publication.edition === 'watercooler' || publication.edition === 'bulletin',
+      includeBulletin: publication.edition === 'bulletin',
     });
     if (!baseIssueData) return null;
     if (publication.edition === 'bulletin') {

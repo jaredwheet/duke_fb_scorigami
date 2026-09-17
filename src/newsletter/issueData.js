@@ -542,6 +542,7 @@ export function buildSundayIssueData({
   scorigamiHistory = [],
   accContext = null,
   odds = null,
+  bulletinContext = null,
   watercoolerContext = null,
 }) {
   const scores = getScoreDetails(game, participants);
@@ -624,6 +625,7 @@ export function buildSundayIssueData({
     next_game_start_at: nextGame?.start_at || null,
     next_schedule: nextSchedule,
     odds,
+    bulletin_context: bulletinContext,
     watercooler_context: watercoolerContext,
     source_url: `https://www.winsipedia.com/duke/schedule/${game.season}`,
     footer_text: 'A quick read on the game, the numbers, and what comes next.',

@@ -40,8 +40,10 @@ export function buildWatercoolerIssueData(issueData, { issueDate } = {}) {
 
 export function buildVictoryBellBulletinIssueData(issueData, { issueDate, odds = null } = {}) {
   const opponent = issueData.next_opponent || 'the next opponent';
-  const oddsDetail = odds?.summary || 'Betting lines are not available from the configured odds feed.';
-  const lastGameDetail = issueData.narrative || `Duke last played ${issueData.current_opponent || 'a ranked opponent'}.`;
+  const context = issueData.bulletin_context || {};
+  const oddsDetail = context.odds?.summary || odds?.summary || 'Published lines are not available from the configured free odds feed.';
+  const marketDetail = context.winProbability || odds?.winProbability || 'Market-implied win probability is not available from the configured feed.';
+  const seriesHistory = issueData.watercooler_context?.opponentHistory || `Duke meets ${opponent} next.`;
   return {
     ...issueData,
     publication_key: 'victory-bell-bulletin',
@@ -51,16 +53,18 @@ export function buildVictoryBellBulletinIssueData(issueData, { issueDate, odds =
     game_id: issueData.next_game_id,
     publication_anchor_game_id: issueData.next_game_id,
     subject: `The Victory Bell Bulletin: Duke vs ${opponent}`,
-    preview_text: `The numbers, matchup, and betting board for Duke's game against ${opponent}.`,
+    preview_text: `The matchup, series history, season numbers, and market view for Duke's game against ${opponent}.`,
     edition_name: 'THE VICTORY BELL BULLETIN',
     headline: `DUKE VS ${opponent.toUpperCase()}`,
-    subheadline: 'The weekend primer: matchup notes, betting lines, and the numbers to know.',
+    subheadline: 'The weekend primer: series history, season-long strengths, the line, and the market view.',
     brief_lead: `Duke's next assignment is ${opponent}. ${issueData.next_details || 'Game details are still being confirmed.'}`,
     brief_sections: [
       { label: 'THE MATCHUP', detail: issueData.next_details || `Duke meets ${opponent}.` },
-      { label: 'THE OPPONENT FILE', detail: issueData.watercooler_context?.opponentHistory || `Duke meets ${opponent} next.` },
-      { label: 'BETTING BOARD', detail: oddsDetail },
-      { label: 'NUMBERS TO KNOW', detail: lastGameDetail },
+      { label: 'SERIES HISTORY', detail: seriesHistory },
+      { label: 'THE LINE', detail: oddsDetail },
+      { label: 'SEASON NUMBERS', detail: context.seasonSummary || 'Season-to-date team numbers are not available from the configured statistics feed.' },
+      { label: 'STRENGTHS & PRESSURE POINTS', detail: context.strengths || 'The matchup strengths are still being assembled from the season feed.' },
+      { label: 'MARKET VIEW', detail: marketDetail },
     ],
     odds,
   };
