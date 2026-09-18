@@ -1,6 +1,6 @@
 # Bug Registry
 
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-09-18
 
 ## Summary
 
@@ -12,8 +12,8 @@
 | Verified | 0 |
 | Closed | 0 |
 | Won't Fix | 0 |
-| inbox | 2 |
-| **Total** | **2** |
+| inbox | 3 |
+| **Total** | **3** |
 
 ## By Severity
 
@@ -26,6 +26,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [BG-01M2R2M9](BG-01M2R2M9-legacy-supabase-base-tables-are-missing-from-the.md) | Legacy Supabase base tables are missing from the checked-in migration chain | High | Medium | inbox | -- | -- | 2026-09-17 |
 | [BG-01M2R299](BG-01M2R299-canonical-ingestion-has-no-atomic-concurrent-run-claim.md) | Canonical ingestion has no atomic concurrent-run claim | High | Medium | inbox | -- | -- | 2026-09-17 |
+| [BG-01M2V18R](BG-01M2V18R-deterministic-editorial-fallback-reuses-unapproved-subheadline-numbers.md) | Deterministic editorial fallback reuses unapproved subheadline numbers | Medium | Medium | inbox | -- | -- | 2026-09-18 |
 
 ## Notes
 

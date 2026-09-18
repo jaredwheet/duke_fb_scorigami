@@ -254,6 +254,23 @@ test('Q7 EDGE unknown provider errors map to safe reason codes', async () => {
   expect(JSON.stringify(result)).not.toContain('provider response secret');
 });
 
+test('fallback sanitizes unapproved subheadline numbers', async () => {
+  const result = await runEditorialOrchestrator({
+    headline: 'DUKE TAKES THE LAST WORD',
+    subheadline: 'Next stop at 170 yards.',
+    narrative: 'Duke rallied late.',
+    current_opponent: 'Illinois',
+    current_score: '31-27',
+    quarters: [{ final: 31 }, { final: 27 }],
+    numbers: [],
+    guide_context: {},
+    acc_context: {},
+  }, { apiKey: null });
+
+  expect(result.validation.approved).toBe(true);
+  expect(result.issueData.subheadline).toBe('Duke 31-27 vs Illinois.');
+});
+
 test('uses a Duke-positive headline in the deterministic fallback', async () => {
   const result = await runEditorialOrchestrator({
     headline: 'DUKE OUTLASTS ILLINOIS',
