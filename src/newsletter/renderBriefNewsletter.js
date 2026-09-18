@@ -14,7 +14,7 @@ function escapeHtml(value) {
 }
 
 function buildSectionRows(sections = []) {
-  return sections.map((section) => {
+  return (sections || []).map((section) => {
     const rows = section.rows?.length > 0
       ? `
         <tr style="border-bottom:1px solid #d9d2c3;">
@@ -47,8 +47,8 @@ export async function renderBriefNewsletter(data = {}) {
     brief_lead: data.brief_lead || '',
     section_rows: buildSectionRows(data.brief_sections),
     footer_text: data.footer_text || 'A quick read on Duke football.',
-    unsubscribe_url: data.unsubscribe_url || 'https://example.com/unsubscribe',
-    preferences_url: data.preferences_url || 'https://example.com/preferences',
+    unsubscribe_url: data.unsubscribe_url || process.env.NEWSLETTER_UNSUBSCRIBE_URL || 'https://example.invalid/unsubscribe',
+    preferences_url: data.preferences_url || process.env.NEWSLETTER_PREFERENCES_URL || 'https://example.invalid/preferences',
   };
   const rendered = template.replace(/\{\{([a-z_]+)\}\}/g, (_, key) => key === 'section_rows' ? values[key] : escapeHtml(values[key]));
   const result = await mjml2html(rendered, { validationLevel: 'strict' });

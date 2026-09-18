@@ -25,8 +25,10 @@ export function getRecentCompletedDukeGames(
   backfillDays = DEFAULT_BACKFILL_DAYS,
 ) {
   const requestedDays = Number(backfillDays);
-  const days = Number.isFinite(requestedDays) && requestedDays >= 0
-    ? requestedDays
+  const days = backfillDays == null || String(backfillDays).trim() === ''
+    ? DEFAULT_BACKFILL_DAYS
+    : Number.isFinite(requestedDays) && requestedDays >= 0
+    ? Math.min(requestedDays, 365)
     : DEFAULT_BACKFILL_DAYS;
   const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 

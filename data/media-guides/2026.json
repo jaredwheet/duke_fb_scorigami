@@ -6,6 +6,7 @@
     "file": "data/2026_Duke_Football_Media_Guide.pdf",
     "pageCount": 308,
     "reviewedAt": "2026-09-16",
+    "sha256": "e5066d424e117f58dba9f766b4a33d88cf55bd1e6c692d3d3feaff6f0d185d83",
     "notes": [
       "The PDF is text-readable, but tables require manual validation after extraction.",
       "The guide contains static preseason and historical information; live game facts remain canonical elsewhere."

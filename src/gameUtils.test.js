@@ -49,4 +49,28 @@ describe('getRecentCompletedDukeGames', () => {
 
     expect(getRecentCompletedDukeGames(games, now, 14).map((game) => game.id)).toEqual([1, 3]);
   });
+
+  test('recovery window includes exact cutoff, excludes future/incomplete/malformed games, and clamps at 365 days', () => {
+    const now = new Date('2026-09-14T12:00:00Z');
+    const games = [
+      { id: 'cutoff', startDate: '2026-08-15T12:00:00Z', completed: true, homePoints: 21, awayPoints: 14 },
+      { id: 'before', startDate: '2026-08-15T11:59:59Z', completed: true, homePoints: 21, awayPoints: 14 },
+      { id: 'future', startDate: '2026-09-15T12:00:00Z', completed: true, homePoints: 21, awayPoints: 14 },
+      { id: 'incomplete', startDate: '2026-09-10T12:00:00Z', completed: true, homePoints: null, awayPoints: 14 },
+      { id: 'malformed', startDate: 'not-a-date', completed: true, homePoints: 21, awayPoints: 14 },
+    ];
+
+    expect(getRecentCompletedDukeGames(games, now, 30).map((game) => game.id)).toEqual(['cutoff']);
+    expect(getRecentCompletedDukeGames(games, now, 365).map((game) => game.id)).toEqual(['before', 'cutoff']);
+    expect(getRecentCompletedDukeGames([
+      { id: 'old', startDate: '2025-09-15T12:00:00Z', completed: true, homePoints: 21, awayPoints: 14 },
+    ], now, 1000).map((game) => game.id)).toEqual(['old']);
+  });
+
+  test('empty backfill input uses the default window', () => {
+    const now = new Date('2026-09-14T12:00:00Z');
+    const game = { id: 'default', startDate: '2026-08-20T12:00:00Z', completed: true, homePoints: 21, awayPoints: 14 };
+
+    expect(getRecentCompletedDukeGames([game], now, '')).toEqual([game]);
+  });
 });

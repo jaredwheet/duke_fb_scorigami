@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { momentScoutSchema } from '../schemas.js';
+import { withTimeout } from '../agentClient.js';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 
@@ -8,6 +9,7 @@ export async function runWebMomentScout({
   apiKey = process.env.OPENAI_API_KEY,
   model = process.env.OPENAI_MOMENT_SEARCH_MODEL || process.env.OPENAI_EDITORIAL_MODEL || DEFAULT_MODEL,
   client = null,
+  timeoutMs,
 } = {}) {
   if (!apiKey && !client) return { candidates: [], warnings: ['OPENAI_API_KEY is not configured'] };
   const opponent = issueData?.current_opponent || 'the opponent';
@@ -22,16 +24,16 @@ export async function runWebMomentScout({
 
   try {
     const openai = client || new OpenAI({ apiKey });
-    const response = await openai.responses.create({
+    const response = await withTimeout(openai.responses.create({
       model,
       tools: [{ type: 'web_search_preview', search_context_size: 'high' }],
       input: prompt,
       text: { format: { type: 'json_schema', name: 'duke_web_moment_scout', strict: true, schema: momentScoutSchema } },
-    });
+    }), timeoutMs);
     const content = response.output_text;
     if (!content) throw new Error('web moment scout returned no content');
     return JSON.parse(content);
   } catch (error) {
-    return { candidates: [], warnings: [`web moment scout: ${error.message}`] };
+    return { candidates: [], warnings: [error?.code === 'PROVIDER_TIMEOUT' ? 'provider_timeout' : 'provider_error'] };
   }
 }

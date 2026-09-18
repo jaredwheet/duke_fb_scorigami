@@ -78,12 +78,23 @@ async function fetchAllRows(client, table, columns, configure, pageSize = 500) {
   }
 }
 
-export async function loadWatercoolerContext(client, { guide, nextGame, nextParticipants = [] } = {}) {
+export async function loadWatercoolerContext(client, { guide, nextGame, nextParticipants = [], sportId = null } = {}) {
   if (!nextGame) return null;
+  let resolvedSportId = sportId;
+  if (resolvedSportId == null) {
+    const { data: sport, error: sportError } = await client
+      .from('sports')
+      .select('id')
+      .eq('slug', 'football')
+      .maybeSingle();
+    if (sportError) throw sportError;
+    if (!sport) throw new Error('Canonical football sport is not available');
+    resolvedSportId = sport.id;
+  }
   const [games, participants, teams] = await Promise.all([
-    fetchAllRows(client, 'games', 'id, season, start_at, status, venue_name, city, state', (query) => query.eq('status', 'final')),
+    fetchAllRows(client, 'games', 'id, season, start_at, status, venue_name, city, state', (query) => query.eq('sport_id', resolvedSportId).eq('status', 'final')),
     fetchAllRows(client, 'game_participants', 'game_id, team_id, score', (query) => query),
-    client.from('teams').select('id, slug, name').then(({ data, error }) => {
+    client.from('teams').select('id, slug, name').eq('sport_id', resolvedSportId).then(({ data, error }) => {
       if (error) throw error;
       return data || [];
     }),

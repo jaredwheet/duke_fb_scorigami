@@ -9,14 +9,28 @@ import {
   claimNewsletterDelivery,
   completeNewsletterDelivery,
   failNewsletterDelivery,
+  safeNewsletterError,
+  saveNewsletterEditorialAudit,
   saveNewsletterIssue,
 } from './newsletterPersistence.js';
 
-const apiKey = process.env.RESEND_API_KEY;
-const recipient = process.env.NEWSLETTER_TO || process.env.NEWSLETTER_TEST_TO;
-
-if (!apiKey) throw new Error('RESEND_API_KEY is required');
-if (!recipient) throw new Error('NEWSLETTER_TO or NEWSLETTER_TEST_TO is required');
+function requireProductionConfig() {
+  const apiKey = process.env.RESEND_API_KEY;
+  const recipient = process.env.NEWSLETTER_TO;
+  if (!apiKey) throw new Error('RESEND_API_KEY is required');
+  if (!recipient) throw new Error('NEWSLETTER_TO is required for production delivery');
+  for (const name of ['NEWSLETTER_UNSUBSCRIBE_URL', 'NEWSLETTER_PREFERENCES_URL']) {
+    const value = process.env[name];
+    let url;
+    try {
+      url = new URL(value);
+    } catch {
+      url = null;
+    }
+    if (!url || url.protocol !== 'https:' || !url.hostname) throw new Error(`${name} must be an HTTPS URL`);
+  }
+  return { apiKey, recipient };
+}
 
 async function loadIssueData(publication, issueDate) {
   try {
@@ -53,7 +67,8 @@ function isIssueReady(issueData) {
   return Boolean(issueData.game_id && issueData.issue_date_key && issueData.source_payload && hasPlayData);
 }
 
-async function sendNewsletter() {
+export async function sendNewsletter() {
+  const config = requireProductionConfig();
   const duePublications = getDuePublications();
   if (duePublications.length === 0) {
     console.log('No newsletter edition is due.');
@@ -63,16 +78,16 @@ async function sendNewsletter() {
   let failed = false;
   for (const publication of duePublications) {
     try {
-      await sendPublication(publication, publicationDateKey());
+      await sendPublication(publication, publicationDateKey(), config);
     } catch (error) {
       failed = true;
-      console.error(`${publication.label} failed:`, error);
+      console.error(`${publication.label} failed: ${safeNewsletterError(error)}`);
     }
   }
   if (failed) process.exitCode = 1;
 }
 
-async function sendPublication(publication, issueDate) {
+export async function sendPublication(publication, issueDate, { apiKey, recipient }) {
   const deterministicIssueData = await loadIssueData(publication, issueDate);
   if (!deterministicIssueData) return;
 
@@ -90,9 +105,10 @@ async function sendPublication(publication, issueDate) {
     return;
   }
 
+  let providerAttempted = false;
   try {
     const { issueData, html, chartBuffer, editorialResult } = await prepareNewsletter(deterministicIssueData);
-    if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation.approved}`);
+    if (editorialResult) console.log(`Editorial pipeline: ${editorialResult.mode}; validation=${editorialResult.validation?.approved ?? 'not-reported'}`);
     if (publication.edition === 'sunday') {
       console.log(`Deterministic moment: ${deterministicIssueData.guide_context?.editorialMoment || deterministicIssueData.turning_point?.description || 'none'}`);
       console.log(`Rendered moment: ${issueData.guide_context?.editorialMoment || 'none'}`);
@@ -104,7 +120,25 @@ async function sendPublication(publication, issueDate) {
       html,
     });
 
+    await saveNewsletterEditorialAudit(supabase, {
+      issueId: claim.issue.id,
+      deliveryId: claim.delivery.id,
+      attempt: claim.delivery.attempts || 1,
+      editorialResult: editorialResult || {
+        mode: 'deterministic-non-editorial',
+        sectionResults: {},
+        provenance: {
+          packetVersion: 'not_applicable',
+          schemaVersion: 'not_applicable',
+          validatorVersion: 'not_applicable',
+          fallbackVersion: 'not_applicable',
+          provider: 'deterministic',
+        },
+      },
+    });
+
     const resend = new Resend(apiKey);
+    providerAttempted = true;
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Duke Football Scorigami <onboarding@resend.dev>',
       to: [recipient],
@@ -119,6 +153,7 @@ async function sendPublication(publication, issueDate) {
     await completeNewsletterDelivery(supabase, {
       issueId: claim.issue.id,
       deliveryId: claim.delivery.id,
+      claimToken: claim.delivery.claim_token,
       providerMessageId: data.id,
     });
     console.log(`${publication.label} sent for game ${deterministicIssueData.game_id}: ${data.id}`);
@@ -127,16 +162,20 @@ async function sendPublication(publication, issueDate) {
       await failNewsletterDelivery(supabase, {
         issueId: claim.issue.id,
         deliveryId: claim.delivery.id,
-        error,
+        claimToken: claim.delivery.claim_token,
+        error: new Error(safeNewsletterError(error)),
+        uncertain: providerAttempted,
       });
     } catch (persistenceError) {
-      console.error(`Unable to record newsletter failure: ${persistenceError.message}`);
+      console.error(`Unable to record newsletter failure: ${safeNewsletterError(persistenceError)}`);
     }
     throw error;
   }
 }
 
-sendNewsletter().catch((error) => {
-  console.error('Automated newsletter failed:', error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
+  sendNewsletter().catch((error) => {
+    console.error('Automated newsletter failed:', error);
+    process.exitCode = 1;
+  });
+}

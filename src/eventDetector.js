@@ -1,4 +1,4 @@
-export const EVENT_LOGIC_VERSION = 'v1';
+export const EVENT_LOGIC_VERSION = 'v2';
 
 function directive({ key, tier, priority, facts, issueTypes = ['sunday'] }) {
   return {
@@ -11,11 +11,11 @@ function directive({ key, tier, priority, facts, issueTypes = ['sunday'] }) {
   };
 }
 
-export function detectEvents(masterGame) {
+export function detectEvents(masterGame, { logicVersion = EVENT_LOGIC_VERSION } = {}) {
   const facts = masterGame?.facts || {};
   const directives = [];
 
-  if (facts.scorigami?.isNew === true) {
+  if (facts.scorigami?.isNew === true && facts.scorigami.score != null) {
     directives.push(directive({
       key: 'scorigami_final',
       tier: 1,
@@ -80,17 +80,21 @@ export function detectEvents(masterGame) {
     }));
   }
 
-  directives.sort((a, b) => a.tier - b.tier || b.priority - a.priority);
+  const orderedDirectives = directives
+    .map((candidate) => ({ ...candidate, logicVersion }))
+    .sort((a, b) => a.tier - b.tier
+      || b.priority - a.priority
+      || (a.directiveKey < b.directiveKey ? -1 : a.directiveKey > b.directiveKey ? 1 : 0));
   return {
-    logicVersion: EVENT_LOGIC_VERSION,
+    logicVersion,
     gameKey: masterGame?.canonicalKey || null,
-    primary: directives[0] || null,
-    directives,
+    primary: orderedDirectives[0] || null,
+    directives: orderedDirectives,
   };
 }
 
-export function buildHeadlineDirective(masterGame) {
-  const result = detectEvents(masterGame);
+export function buildHeadlineDirective(masterGame, options = {}) {
+  const result = detectEvents(masterGame, options);
   return result.primary
     ? {
       ...result.primary,

@@ -1,7 +1,11 @@
 import { loadMediaGuide } from './loadGuide.js';
 import { calculateComebackFact, calculateRecordWatch } from './guideFacts.js';
-import { buildGuideClaimRows } from './mediaGuideRepository.js';
+import { buildGuideClaimRows, getGuideSourceHash, importMediaGuideClaims } from './mediaGuideRepository.js';
+import { buildCurationReport } from './curateGuide.js';
+import { extractMediaGuide } from './extractPdf.js';
+import { validateMediaGuide } from './schema.js';
 import { buildOpponentHistory, buildSeasonPreviewData, buildGuideContext } from '../newsletter/guideContext.js';
+import { fileURLToPath } from 'node:url';
 
 test('loads the reviewed 2026 guide artifact with citations', () => {
   const guide = loadMediaGuide();
@@ -12,12 +16,90 @@ test('loads the reviewed 2026 guide artifact with citations', () => {
   expect(guide.opponentSeries).toHaveLength(12);
 });
 
+test('QMY AC1 validates the checked-in 2026 PDF and JSON through curation and preview', async () => {
+  const pdfPath = fileURLToPath(new URL('../../data/2026_Duke_Football_Media_Guide.pdf', import.meta.url));
+  const report = await buildCurationReport({ rawPages: await extractMediaGuide(pdfPath) });
+
+  expect(report).toMatchObject({ edition: 2026, sourcePageCount: 308, curatedClaims: 33, missingMarkers: [], status: 'ready' });
+  expect(buildSeasonPreviewData({ guide: loadMediaGuide() })).toMatchObject({ season: 2026 });
+});
+
+test('QMY AC1 marks curation review-required when a required source marker is absent', async () => {
+  const guide = loadMediaGuide();
+  await expect(buildCurationReport({ guide, rawPages: { source: { pageCount: 308 }, pages: [{ text: '2026 SCHEDULE' }] } }))
+    .resolves.toMatchObject({ status: 'review_required', missingMarkers: expect.arrayContaining(['2026 ROSTER']) });
+});
+
+test('QMY AC1 rejects a claim with an unresolved citation ID', () => {
+  const guide = structuredClone(loadMediaGuide());
+  guide.seasonContext[0].citationId = 'missing-citation';
+  expect(() => validateMediaGuide(guide)).toThrow('citationId does not resolve');
+});
+
+test('QMY AC1 rejects citation pages outside the checked-in source', () => {
+  const guide = structuredClone(loadMediaGuide());
+  guide.citations.preview.pageEnd = 309;
+  expect(() => validateMediaGuide(guide)).toThrow('pageEnd exceeds source.pageCount');
+});
+
+test('QMY AC1 rejects blank and duplicate claim IDs', () => {
+  const blank = structuredClone(loadMediaGuide());
+  blank.seasonContext[0].id = '   ';
+  expect(() => validateMediaGuide(blank)).toThrow('id is required');
+
+  const duplicate = structuredClone(loadMediaGuide());
+  duplicate.seasonReviews[0].id = duplicate.seasonContext[0].id;
+  expect(() => validateMediaGuide(duplicate)).toThrow('id is duplicated');
+});
+
 test('flattens reviewed guide sections into importable cited claims', () => {
   const rows = buildGuideClaimRows(loadMediaGuide());
 
   expect(rows.length).toBe(33);
   expect(rows).toContainEqual(expect.objectContaining({ claim_key: 'series-clemson', category: 'opponent_series', page_start: 36, verification_status: 'verified' }));
   expect(rows).toContainEqual(expect.objectContaining({ claim_key: 'single-game-rushing-yards', category: 'program_record', page_start: 127 }));
+});
+
+test('QMY AC2 builds 33 unique verified claim rows with bounded citations', () => {
+  const guide = loadMediaGuide();
+  const rows = buildGuideClaimRows(guide, getGuideSourceHash(guide));
+  expect(rows).toHaveLength(33);
+  expect(new Set(rows.map((row) => row.claim_key)).size).toBe(33);
+  expect(rows.every((row) => row.verification_status === 'verified')).toBe(true);
+  expect(rows.every((row) => row.source_sha256 === guide.source.sha256 && /^[0-9a-f]{64}$/.test(row.claim_sha256))).toBe(true);
+  expect(rows.every((row) => row.page_start >= 1 && row.page_end <= 308 && row.page_end >= row.page_start)).toBe(true);
+  expect(rows).toContainEqual(expect.objectContaining({ citation_id: 'series-ledgers', page_start: 36, page_end: 38 }));
+});
+
+test('QMY AC2 persists edition hash and claim provenance exactly once across two imports', async () => {
+  const calls = [];
+  const client = {
+    rpc: async (name, payload) => {
+      calls.push({ name, payload });
+      return { data: [{ edition_id: 7, claim_count: 33 }], error: null };
+    },
+  };
+  const guide = loadMediaGuide();
+  const sourceHash = getGuideSourceHash(guide);
+  await importMediaGuideClaims({ client, guide, sourceHash });
+  await importMediaGuideClaims({ client, guide, sourceHash });
+
+  expect(calls).toHaveLength(2);
+  expect(calls[0].name).toBe('import_media_guide_claims');
+  expect(calls[0].payload.p_claims).toHaveLength(33);
+  expect(calls[0].payload.p_claims).toEqual(calls[1].payload.p_claims);
+  expect(calls[0].payload.p_source_sha256).toBe(guide.source.sha256);
+});
+
+test('QMY AC3 renders guide-backed newsletter context from a clean cwd without generated pages', () => {
+  const previousCwd = process.cwd();
+  try {
+    process.chdir('/var/folders/_p/mzbw1d8x6y30795nmk12rp0r0000gn/T/opencode');
+    expect(loadMediaGuide().edition).toBe(2026);
+    expect(buildSeasonPreviewData({ guide: loadMediaGuide() }).season).toBe(2026);
+  } finally {
+    process.chdir(previousCwd);
+  }
 });
 
 test('detects a guide-backed single-game record watch', () => {

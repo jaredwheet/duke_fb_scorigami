@@ -16,9 +16,10 @@ export async function runScorigamiAgent(packet, options = {}) {
     schema: sectionSchema,
     ...options,
   });
-  return result.output || {
+  const output = result.output || {
     context: packet.issue.scorigamiContext,
     factsUsed: ['scorigami'],
     warnings: result.warning ? [result.warning] : [],
   };
+  return { output, fallbackReason: result.fallbackReason || null };
 }

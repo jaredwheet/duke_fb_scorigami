@@ -626,8 +626,8 @@ export function buildSundayIssueData({
     watercooler_context: watercoolerContext,
     source_url: `https://www.winsipedia.com/duke/schedule/${game.season}`,
     footer_text: 'A quick read on the game, the numbers, and what comes next.',
-    unsubscribe_url: 'https://example.com/unsubscribe',
-    preferences_url: 'https://example.com/preferences',
+    unsubscribe_url: process.env.NEWSLETTER_UNSUBSCRIBE_URL || 'https://example.invalid/unsubscribe',
+    preferences_url: process.env.NEWSLETTER_PREFERENCES_URL || 'https://example.invalid/preferences',
     source_payload: sourcePayload,
   };
 }

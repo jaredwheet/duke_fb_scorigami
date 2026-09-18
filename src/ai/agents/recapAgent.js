@@ -24,7 +24,7 @@ export async function runRecapAgent(packet, options = {}) {
     schema: recapSchema,
     ...options,
   });
-  return result.output || buildDeterministicEditorialFallback({
+  const output = result.output || buildDeterministicEditorialFallback({
     headline: packet.issue.headline,
     subheadline: packet.issue.subheadline,
     narrative: packet.issue.narrative,
@@ -35,4 +35,5 @@ export async function runRecapAgent(packet, options = {}) {
     turning_point: packet.issue.turningPoint,
     scorigami_context: packet.issue.scorigamiContext,
   }).recap;
+  return { output, fallbackReason: result.fallbackReason || null };
 }

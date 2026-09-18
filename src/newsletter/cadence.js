@@ -44,6 +44,13 @@ const WEEKDAYS = {
 };
 
 export function getEasternParts(value = new Date()) {
+  let date;
+  try {
+    date = value == null ? new Date(Number.NaN) : new Date(value);
+  } catch {
+    date = new Date(Number.NaN);
+  }
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: NEWSLETTER_TIME_ZONE,
     weekday: 'short',
@@ -54,7 +61,7 @@ export function getEasternParts(value = new Date()) {
     minute: '2-digit',
     hour12: false,
     hourCycle: 'h23',
-  }).formatToParts(new Date(value));
+  }).formatToParts(safeDate);
   const values = Object.fromEntries(parts.map(({ type, value: partValue }) => [type, partValue]));
   return {
     weekday: WEEKDAYS[values.weekday],

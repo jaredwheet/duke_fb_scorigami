@@ -14,6 +14,21 @@ test('renders the Sunday MJML template into HTML', async () => {
   expect(html).toContain('>TIME</th>');
 });
 
+test('newsletter HTML uses fact-packet values without recalculation', async () => {
+  const html = await renderDevilInDetails({
+    headline: 'Packet headline',
+    quarters: [{ team: 'Packet Team', q1: 0, q2: 1, q3: 2, q4: 3, final: 99 }],
+    numbers: [{ value: 0, label: 'PACKET ZERO', detail: 'From the verified packet.' }],
+    next_opponent: 'Packet Opponent',
+  });
+
+  expect(html).toContain('Packet headline');
+  expect(html).toContain('Packet Team');
+  expect(html).toContain('>99</td>');
+  expect(html).toContain('PACKET ZERO');
+  expect(html).toContain('Packet Opponent');
+});
+
 test('renders optional guide-backed history sections', async () => {
   const html = await renderDevilInDetails({
     guide_context: {
@@ -60,4 +75,39 @@ test('renders the win-expectancy chart section when an inline image is provided'
   expect(html).toContain('WIN EXPECTANCY');
   expect(html).toContain('cid:duke-win-expectancy');
   expect(html).toContain('Chart caption');
+});
+
+test('newsletter HTML preserves a numeric zero fact value', async () => {
+  const html = await renderDevilInDetails({
+    numbers: [{ value: 0, label: 'ZERO FACT', detail: 'Verified zero.' }],
+  });
+
+  expect(html).toContain('ZERO FACT');
+  expect(html).toContain('>0</td>');
+});
+
+test('newsletter optional sections remain valid when absent', async () => {
+  const html = await renderDevilInDetails({
+    guide_context: null,
+    win_expectancy: null,
+    leaders: { passing: [], rushing: [], receiving: [], defense: [] },
+    numbers: [],
+    acc_context: { standings: [], results: [] },
+  });
+
+  expect(html).toContain('<!doctype html>');
+  expect(html).not.toContain('RECORD WATCH');
+  expect(html).not.toContain('WIN EXPECTANCY');
+});
+
+test('newsletter escape protects provider-controlled text', async () => {
+  const html = await renderDevilInDetails({
+    headline: '<script>alert("x")</script>',
+    narrative: 'Opponent & Duke',
+    next_opponent: 'Virginia <Rivals>',
+  });
+
+  expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
+  expect(html).toContain('Opponent &amp; Duke');
+  expect(html).toContain('Virginia &lt;Rivals&gt;');
 });

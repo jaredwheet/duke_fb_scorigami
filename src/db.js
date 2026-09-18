@@ -1,4 +1,53 @@
 import supabase from './supabaseClient.js';
+import { randomUUID } from 'node:crypto';
+
+export async function claimTweet({ gameId, scoreKey, claimToken = randomUUID() } = {}) {
+    const { data, error } = await supabase.rpc('claim_tweeted_score', {
+        p_game_id: gameId,
+        p_score_key: scoreKey,
+        p_claim_token: claimToken,
+    });
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    return {
+        claimed: result?.claimed === true,
+        claimToken: result?.claimed === true ? claimToken : null,
+        status: result?.status || null,
+    };
+}
+
+export async function finalizeTweet({
+    gameId,
+    scoreKey,
+    claimToken,
+    tweetId = null,
+    tweetUrl = null,
+    contentType = null,
+    templateVersion = null,
+} = {}) {
+    const { data, error } = await supabase.rpc('finalize_tweeted_score', {
+        p_game_id: gameId,
+        p_score_key: scoreKey,
+        p_claim_token: claimToken,
+        p_tweet_id: tweetId,
+        p_tweet_url: tweetUrl,
+        p_content_type: contentType,
+        p_template_version: templateVersion,
+    });
+    if (error) throw error;
+    return data === true;
+}
+
+export async function recordTweetError({ gameId, scoreKey, claimToken, error } = {}) {
+    const { data, error: rpcError } = await supabase.rpc('record_tweeted_score_error', {
+        p_game_id: gameId,
+        p_score_key: scoreKey,
+        p_claim_token: claimToken,
+        p_error: String(error?.message || error || 'Unknown publication error'),
+    });
+    if (rpcError) throw rpcError;
+    return data === true;
+}
 
 export async function alreadyTweeted(gameId, scoreKey) {
     const { data, error } = await supabase

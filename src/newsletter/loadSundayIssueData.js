@@ -8,7 +8,7 @@ import {
   fetchCfbDataSeasonStats,
   fetchCfbDataTeamGameStats,
   fetchCfbDataTeamRecords,
-  fetchCfbDataPlayerGameStats,
+  fetchCfbDataPlayerSeasonStats,
 } from '../ingestion/providers/cfbData.js';
 import { fetchOddsApiSnapshot } from '../ingestion/providers/enrichments.js';
 import { loadAccContext } from './accData.js';
@@ -18,11 +18,12 @@ import { findUpcomingOdds } from './odds.js';
 import { buildBulletinContext, findCfbDataOdds } from './bulletinData.js';
 import { loadWatercoolerContext } from './watercoolerData.js';
 import { isDukeTeam } from '../teamUtils.js';
+import { EVENT_LOGIC_VERSION } from '../eventDetector.js';
 
-async function loadParticipants(client, gameId) {
+async function loadParticipants(client, gameId, sportId) {
   const [{ data: participants, error: participantError }, { data: teams, error: teamError }] = await Promise.all([
     client.from('game_participants').select('team_id, participant_role, score').eq('game_id', gameId),
-    client.from('teams').select('id, slug, name'),
+    client.from('teams').select('id, slug, name').eq('sport_id', sportId),
   ]);
   if (participantError) throw participantError;
   if (teamError) throw teamError;
@@ -33,6 +34,17 @@ async function loadParticipants(client, gameId) {
     score: participant.score,
     team: teamsById.get(participant.team_id),
   }));
+}
+
+async function loadFootballSport(client) {
+  const { data, error } = await client
+    .from('sports')
+    .select('id, slug')
+    .eq('slug', 'football')
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Canonical football sport is not available');
+  return data.id;
 }
 
 async function fetchPagedRows(client, table, columns, configure, pageSize = 500) {
@@ -52,18 +64,20 @@ function normalizedTeam(value) {
 }
 
 async function loadCanonicalSeasonRecords(client, season, teamNames = []) {
+  const sportId = await loadFootballSport(client);
   const targets = teamNames.filter(Boolean).map((name) => ({ name, key: normalizedTeam(name) }));
   const { data: games, error: gamesError } = await client
     .from('games')
     .select('id')
     .eq('season', season)
+    .eq('sport_id', sportId)
     .eq('status', 'final');
   if (gamesError) throw gamesError;
   const gameIds = (games || []).map((game) => game.id);
   if (gameIds.length === 0 || targets.length === 0) return {};
   const [{ data: participants, error: participantsError }, { data: teams, error: teamsError }] = await Promise.all([
     client.from('game_participants').select('game_id, team_id, score').in('game_id', gameIds),
-    client.from('teams').select('id, slug, name'),
+    client.from('teams').select('id, slug, name').eq('sport_id', sportId),
   ]);
   if (participantsError) throw participantsError;
   if (teamsError) throw teamsError;
@@ -105,12 +119,12 @@ function scorePair(dukeScore, opponentScore) {
   return [Number(dukeScore), Number(opponentScore)].sort((left, right) => left - right).join('-');
 }
 
-async function loadScorigamiHistory(client, currentGame, scoreFacts) {
+async function loadScorigamiHistory(client, currentGame, scoreFacts, sportId) {
   if (!scoreFacts?.scorePair || scoreFacts.isNew) return [];
 
   const [games, participants, teams] = await Promise.all([
     fetchPagedRows(client, 'games', 'id, start_at, venue_name, city, state', (query) => {
-      let configured = query.eq('status', 'final').order('start_at', { ascending: false });
+      let configured = query.eq('sport_id', sportId).eq('status', 'final').order('start_at', { ascending: false });
       if (currentGame.start_at) configured = configured.lt('start_at', currentGame.start_at);
       return configured;
     }),
@@ -155,9 +169,11 @@ function findNextGuideSchedule(guide, nextGame, nextParticipants) {
 }
 
 export async function loadLatestSundayIssueData(client = supabase, { includeOdds = false, includeWatercooler = false, includeBulletin = false } = {}) {
+  const sportId = await loadFootballSport(client);
   const { data: games, error: gamesError } = await client
     .from('games')
     .select('id, season, week, start_at, status, venue_name')
+    .eq('sport_id', sportId)
     .eq('status', 'final')
     .order('start_at', { ascending: false })
     .limit(1);
@@ -166,11 +182,11 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
   if (!game) throw new Error('No completed canonical game is available for a Sunday issue');
 
   const [participants, { data: sourceRecords, error: sourceError }, { data: analytics, error: analyticsError }, { data: factRows, error: factsError }, { data: directives, error: directivesError }] = await Promise.all([
-    loadParticipants(client, game.id),
+    loadParticipants(client, game.id, sportId),
     client.from('game_source_records').select('payload').eq('game_id', game.id).eq('provider', 'cfbdata').limit(1),
     client.from('game_analytics').select('payload').eq('game_id', game.id).eq('metric_set', 'game_details').limit(1),
-    client.from('game_facts').select('value').eq('game_id', game.id).eq('fact_key', 'headline_facts').limit(1),
-    client.from('editorial_directives').select('directive_key, tier, priority, facts, issue_type').eq('game_id', game.id).eq('issue_type', 'sunday').order('priority', { ascending: false }).limit(1),
+    client.from('game_facts').select('value').eq('game_id', game.id).eq('fact_key', 'headline_facts').eq('logic_version', EVENT_LOGIC_VERSION).limit(1),
+    client.from('editorial_directives').select('directive_key, tier, priority, facts, issue_type').eq('game_id', game.id).eq('issue_type', 'sunday').eq('logic_version', EVENT_LOGIC_VERSION).order('priority', { ascending: false }).limit(1),
   ]);
   if (sourceError) throw sourceError;
   if (analyticsError) throw analyticsError;
@@ -186,14 +202,14 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
     .limit(1);
   if (nextError) throw nextError;
   const nextGame = nextGames?.[0] || null;
-  const nextParticipants = nextGame ? await loadParticipants(client, nextGame.id) : [];
+  const nextParticipants = nextGame ? await loadParticipants(client, nextGame.id, sportId) : [];
   let odds = null;
   let bulletinContext = null;
   if (includeBulletin && nextGame && process.env.CFB_DATA_KEY) {
     try {
       const opponent = nextParticipants.find((participant) => !isDukeTeam(participant.team));
       const opponentName = opponent?.team?.name;
-      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats, dukeRecord, opponentRecord, dukePlayerGameStats, opponentPlayerGameStats, dukeGames, opponentGames, canonicalRecords] = await Promise.all([
+      const [lines, pregameProbabilities, dukeSeasonStats, opponentSeasonStats, dukeGameStats, opponentGameStats, dukeRecord, opponentRecord, dukePlayerStats, opponentPlayerStats, dukeGames, opponentGames, canonicalRecords] = await Promise.all([
         fetchCfbDataLines({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataPregameWinProbabilities({ year: nextGame.season, week: nextGame.week, team: 'Duke' }),
         fetchCfbDataSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
@@ -202,8 +218,8 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
         fetchCfbDataTeamGameStats({ year: nextGame.season, team: opponentName }),
         fetchCfbDataTeamRecords({ year: nextGame.season, team: 'Duke' }),
         fetchCfbDataTeamRecords({ year: nextGame.season, team: opponentName }),
-        fetchCfbDataPlayerGameStats({ year: nextGame.season, team: 'Duke' }),
-        fetchCfbDataPlayerGameStats({ year: nextGame.season, team: opponentName }),
+        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: 'Duke', endWeek: Math.max(1, nextGame.week - 1) }),
+        fetchCfbDataPlayerSeasonStats({ year: nextGame.season, team: opponentName, endWeek: Math.max(1, nextGame.week - 1) }),
         fetchCfbDataGames({ year: nextGame.season, team: 'Duke' }),
         fetchCfbDataGames({ year: nextGame.season, team: opponentName }),
         loadCanonicalSeasonRecords(client, nextGame.season, ['Duke', opponentName]),
@@ -219,8 +235,8 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
         opponentGameStats,
         dukeRecord,
         opponentRecord,
-        dukePlayerGameStats,
-        opponentPlayerGameStats,
+        dukePlayerStats,
+        opponentPlayerStats,
         dukeGames,
         opponentGames,
         canonicalRecords,
@@ -242,7 +258,7 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
   const scoreFacts = factRows?.[0]?.value?.scorigami || {};
   let scorigamiHistory = [];
   try {
-    scorigamiHistory = await loadScorigamiHistory(client, game, scoreFacts);
+    scorigamiHistory = await loadScorigamiHistory(client, game, scoreFacts, sportId);
   } catch (error) {
     console.warn(`Scorigami history unavailable: ${error.message}`);
   }
@@ -276,7 +292,7 @@ export async function loadLatestSundayIssueData(client = supabase, { includeOdds
   let watercoolerContext = null;
   if (includeWatercooler && nextGame) {
     try {
-      watercoolerContext = await loadWatercoolerContext(client, { guide, nextGame, nextParticipants });
+      watercoolerContext = await loadWatercoolerContext(client, { guide, nextGame, nextParticipants, sportId });
     } catch (error) {
       console.warn(`Watercooler archive data unavailable: ${error.message}`);
     }
