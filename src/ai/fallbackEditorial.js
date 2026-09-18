@@ -30,7 +30,14 @@ export function buildDeterministicEditorialFallback(issueData = {}) {
 
   return {
     recap: {
-      ...buildHumanRecap({ ...issueData, turning_point: turningPoint, editorial_flourish: flourish }),
+      ...buildHumanRecap({
+        ...issueData,
+        subheadline: dukeScore != null && opponentScore != null
+          ? `Duke ${dukeScore}-${opponentScore} vs ${opponent}.`
+          : 'Duke football update.',
+        turning_point: turningPoint,
+        editorial_flourish: flourish,
+      }),
       warnings: ['deterministic editorial fallback'],
     },
     scorigami: {

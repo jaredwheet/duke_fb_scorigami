@@ -1,6 +1,30 @@
 import OpenAI from 'openai';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
+export const DEFAULT_PROVIDER_TIMEOUT_MS = 30_000;
+
+export function withTimeout(promise, timeoutMs = DEFAULT_PROVIDER_TIMEOUT_MS, reason = 'provider_timeout') {
+  const duration = Number.isFinite(Number(timeoutMs)) ? Math.max(1, Number(timeoutMs)) : DEFAULT_PROVIDER_TIMEOUT_MS;
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(reason);
+      error.code = 'PROVIDER_TIMEOUT';
+      reject(error);
+    }, duration);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function finish(onAgentResult, result) {
+  onAgentResult?.(result);
+  return result;
+}
+
+function classifyProviderError(error) {
+  if (error?.code === 'PROVIDER_TIMEOUT') return 'provider_timeout';
+  return 'provider_error';
+}
 
 export async function runStructuredAgent({
   name,
@@ -10,12 +34,21 @@ export async function runStructuredAgent({
   apiKey = process.env.OPENAI_API_KEY,
   model = process.env.OPENAI_EDITORIAL_MODEL || DEFAULT_MODEL,
   client = null,
+  onPacket = null,
+  onAgentResult = null,
+  timeoutMs = DEFAULT_PROVIDER_TIMEOUT_MS,
 }) {
-  if (!apiKey && !client) return { status: 'fallback', output: null, warning: 'OPENAI_API_KEY is not configured' };
+  if (!String(apiKey || '').trim()) return finish(onAgentResult, {
+    status: 'fallback',
+    output: null,
+    fallbackReason: 'provider_not_configured',
+    warning: 'provider_not_configured',
+  });
 
   try {
+    if (typeof onPacket === 'function') onPacket(packet);
     const openai = client || new OpenAI({ apiKey });
-    const response = await openai.chat.completions.create({
+    const response = await withTimeout(openai.chat.completions.create({
       model,
       temperature: 0.3,
       messages: [
@@ -26,11 +59,20 @@ export async function runStructuredAgent({
         type: 'json_schema',
         json_schema: { name, strict: true, schema },
       },
-    });
+    }), timeoutMs);
     const content = response.choices?.[0]?.message?.content;
-    if (!content) throw new Error(`${name} returned no content`);
-    return { status: 'ok', output: JSON.parse(content) };
+    if (!content) return finish(onAgentResult, {
+      status: 'fallback', output: null, fallbackReason: 'malformed_response', warning: 'malformed_response',
+    });
+    try {
+      return finish(onAgentResult, { status: 'ok', output: JSON.parse(content) });
+    } catch {
+      return finish(onAgentResult, {
+        status: 'fallback', output: null, fallbackReason: 'malformed_response', warning: 'malformed_response',
+      });
+    }
   } catch (error) {
-    return { status: 'fallback', output: null, warning: `${name}: ${error.message}` };
+    const fallbackReason = classifyProviderError(error);
+    return finish(onAgentResult, { status: 'fallback', output: null, fallbackReason, warning: fallbackReason });
   }
 }

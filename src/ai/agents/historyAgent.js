@@ -19,9 +19,10 @@ export async function runHistoryAgent(packet, options = {}) {
   const fallback = packet.issue.guideContext?.opponentHistory?.statement
     || packet.issue.guideContext?.historicalFact?.statement
     || '';
-  return result.output || {
+  const output = result.output || {
     context: fallback,
     factsUsed: ['history'],
     warnings: result.warning ? [result.warning] : [],
   };
+  return { output, fallbackReason: result.fallbackReason || null };
 }

@@ -1,12 +1,9 @@
 import { calculateComebackFact, calculateLateGameFact, calculateRecordWatch, normalizeOpponentSlug } from '../mediaGuide/guideFacts.js';
-
-function isDuke(participant) {
-  return participant?.team?.slug === 'duke' || participant?.team?.name?.toLowerCase() === 'duke';
-}
+import { isDukeTeam } from '../teamUtils.js';
 
 function scoreDetails(participants = []) {
-  const duke = participants.find(isDuke);
-  const opponent = participants.find((participant) => !isDuke(participant));
+  const duke = participants.find((participant) => isDukeTeam(participant.team));
+  const opponent = participants.find((participant) => !isDukeTeam(participant.team));
   return {
     dukeScore: duke?.score ?? null,
     opponentScore: opponent?.score ?? null,
@@ -91,7 +88,7 @@ export function buildGuideContext({ guide, game, participants, detailsPayload = 
   if (!guide || !game) return null;
   const scores = scoreDetails(participants);
   const comeback = calculateComebackFact({
-    dukeName: participants.find(isDuke)?.team?.name || 'Duke',
+    dukeName: participants.find((participant) => isDukeTeam(participant.team))?.team?.name || 'Duke',
     opponentName: scores.opponent,
     dukeScore: scores.dukeScore,
     opponentScore: scores.opponentScore,
@@ -100,13 +97,13 @@ export function buildGuideContext({ guide, game, participants, detailsPayload = 
   });
   const recordWatch = calculateRecordWatch({
     detailsPayload,
-    dukeName: participants.find(isDuke)?.team?.name || 'Duke',
+    dukeName: participants.find((participant) => isDukeTeam(participant.team))?.team?.name || 'Duke',
     opponentName: scores.opponent,
     season: game.season,
     guide,
   });
   const lateGame = calculateLateGameFact({
-    dukeName: participants.find(isDuke)?.team?.name || 'Duke',
+    dukeName: participants.find((participant) => isDukeTeam(participant.team))?.team?.name || 'Duke',
     opponentName: scores.opponent,
     dukeScore: scores.dukeScore,
     opponentScore: scores.opponentScore,

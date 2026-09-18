@@ -1,12 +1,9 @@
 import { calculateComebackFact, calculateLateGameFact, calculateRecordWatch } from '../mediaGuide/guideFacts.js';
-
-function isDuke(participant) {
-  return participant?.team?.slug === 'duke' || participant?.team?.name?.toLowerCase() === 'duke';
-}
+import { isDukeTeam } from '../teamUtils.js';
 
 export function calculateGameNarrativeFacts({ game, detailsPayload = {}, guide }) {
-  const duke = game?.participants?.find(isDuke);
-  const opponent = game?.participants?.find((participant) => !isDuke(participant));
+  const duke = game?.participants?.find((participant) => isDukeTeam(participant.team));
+  const opponent = game?.participants?.find((participant) => !isDukeTeam(participant.team));
   if (!duke || !opponent) {
     return {
       historic: { isRecord: false },

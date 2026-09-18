@@ -46,6 +46,8 @@ export function buildIssuePacket(issueData = {}, { externalSources = [], discove
       guide: clone(issueData.guide_context || {}),
       acc: clone(issueData.acc_context || {}),
       turningPoint: clone(issueData.turning_point),
+    },
+    evidence: {
       externalSources: clone(externalSources),
       discoveredMoments: clone(discoveredMoments),
     },

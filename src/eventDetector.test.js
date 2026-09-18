@@ -9,8 +9,8 @@ test('prioritizes a new Scorigami as a tier-one directive', () => {
         score: '24-10',
         occurrenceCount: 0,
       },
-      narrative: { comeback: true },
-      statisticalHooks: [{ key: 'yardage_milestone', priority: 20 }],
+      historic: { isRecord: true, recordWatch: { status: 'record' } },
+      narrative: { comeback: true, upset: true, lateGameWin: true },
     },
   });
 
@@ -19,7 +19,7 @@ test('prioritizes a new Scorigami as a tier-one directive', () => {
     tier: 1,
     priority: 100,
   });
-  expect(result.directives).toHaveLength(3);
+  expect(result.directives).toHaveLength(5);
 });
 
 test('returns narrative and statistical directives without calculating facts', () => {
@@ -49,4 +49,27 @@ test('emits a late-game directive when verified facts include a late lead change
 
 test('returns no directive when verified facts contain no hook', () => {
   expect(buildHeadlineDirective({ facts: {} })).toBeNull();
+});
+
+test('directive tie-breaking is stable by key after tier and priority', () => {
+  const facts = {
+    statisticalHooks: [
+      { key: 'z_signal', priority: 50, facts: { source: 'z' } },
+      { key: 'a_signal', priority: 50, facts: { source: 'a' } },
+    ],
+  };
+  const result = detectEvents({
+    canonicalKey: 'football:2026:duke-tulane',
+    facts,
+  });
+  const reversed = detectEvents({ canonicalKey: 'football:2026:duke-tulane', facts: {
+    statisticalHooks: [...facts.statisticalHooks].reverse(),
+  } });
+
+  expect(result.primary).toMatchObject({ directiveKey: 'a_signal', tier: 3, priority: 50 });
+  expect(reversed.primary.directiveKey).toBe('a_signal');
+});
+
+test('safeguard does not emit a score directive without a score fact', () => {
+  expect(buildHeadlineDirective({ facts: { scorigami: { isNew: true } } })).toBeNull();
 });

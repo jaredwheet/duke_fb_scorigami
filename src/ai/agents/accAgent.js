@@ -16,9 +16,10 @@ export async function runAccAgent(packet, options = {}) {
     schema: accSchema,
     ...options,
   });
-  return result.output || {
+  const output = result.output || {
     blurb: '',
     factsUsed: ['acc'],
     warnings: result.warning ? [result.warning] : [],
   };
+  return { output, fallbackReason: result.fallbackReason || null };
 }

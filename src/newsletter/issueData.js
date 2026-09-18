@@ -1,12 +1,9 @@
 import { calculateWinExpectancySnapshots, findLargestWinExpectancySwing } from './winExpectancy.js';
-
-function isDuke(team) {
-  return team?.slug === 'duke' || team?.name?.toLowerCase() === 'duke';
-}
+import { isDukeTeam } from '../teamUtils.js';
 
 function getScoreDetails(game, participants) {
-  const duke = participants.find((participant) => isDuke(participant.team));
-  const opponent = participants.find((participant) => !isDuke(participant.team));
+  const duke = participants.find((participant) => isDukeTeam(participant.team));
+  const opponent = participants.find((participant) => !isDukeTeam(participant.team));
   return {
     dukeScore: duke?.score ?? null,
     opponentScore: opponent?.score ?? null,
@@ -541,9 +538,12 @@ export function buildSundayIssueData({
   nextSchedule = null,
   scorigamiHistory = [],
   accContext = null,
+  odds = null,
+  bulletinContext = null,
+  watercoolerContext = null,
 }) {
   const scores = getScoreDetails(game, participants);
-  const dukeName = participants.find((participant) => isDuke(participant.team))?.team?.name || 'Duke';
+  const dukeName = participants.find((participant) => isDukeTeam(participant.team))?.team?.name || 'Duke';
   const plays = detailsPayload?.plays || [];
   const quarterRows = getQuarterRows(
     plays,
@@ -572,9 +572,11 @@ export function buildSundayIssueData({
   const turningPoint = getTurningPoint(plays, dukeName, scores.opponent, playerNames, largestWinExpectancySwing);
   const summaryStats = getSummaryStats(detailsPayload, dukeName);
   const nextDetails = formatNextDetails(nextGame, nextSchedule);
-  const nextOpponent = nextParticipants.find((participant) => !isDuke(participant.team))?.team?.name || 'Next opponent TBD';
+  const nextOpponent = nextParticipants.find((participant) => !isDukeTeam(participant.team))?.team?.name || 'Next opponent TBD';
 
   return {
+    publication_key: 'devil-in-details',
+    edition: 'sunday',
     game_id: game.id,
     issue_date_key: formatIssueDateKey(game.start_at),
     subject: `Devil in the Details: Duke ${scores.dukeScore}-${scores.opponentScore}`,
@@ -591,7 +593,7 @@ export function buildSundayIssueData({
     issue_number: String(game.season),
     ...buildLeadCopy({
       ...scores,
-      dukeRole: participants.find((participant) => isDuke(participant.team))?.role,
+      dukeRole: participants.find((participant) => isDukeTeam(participant.team))?.role,
       turnoverNumber,
       summaryStats,
     }),
@@ -616,10 +618,16 @@ export function buildSundayIssueData({
     acc_context: accContext,
     next_opponent: nextOpponent,
     next_details: nextDetails,
+    next_game_id: nextGame?.id || null,
+    next_game_start_at: nextGame?.start_at || null,
+    next_schedule: nextSchedule,
+    odds,
+    bulletin_context: bulletinContext,
+    watercooler_context: watercoolerContext,
     source_url: `https://www.winsipedia.com/duke/schedule/${game.season}`,
     footer_text: 'A quick read on the game, the numbers, and what comes next.',
-    unsubscribe_url: 'https://example.com/unsubscribe',
-    preferences_url: 'https://example.com/preferences',
+    unsubscribe_url: process.env.NEWSLETTER_UNSUBSCRIBE_URL || 'https://example.invalid/unsubscribe',
+    preferences_url: process.env.NEWSLETTER_PREFERENCES_URL || 'https://example.invalid/preferences',
     source_payload: sourcePayload,
   };
 }

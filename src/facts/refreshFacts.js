@@ -54,7 +54,7 @@ async function loadCanonicalGames(client) {
   }));
 }
 
-export async function refreshDukeFacts(client = null) {
+export async function refreshDukeFacts(client = null, { logicVersion = EVENT_LOGIC_VERSION } = {}) {
   const db = client || (await import('../supabaseClient.js')).default;
   const games = await loadCanonicalGames(db);
   const guide = loadMediaGuide();
@@ -74,6 +74,17 @@ export async function refreshDukeFacts(client = null) {
     };
   });
 
+  for (const game of games) {
+    for (const table of ['game_facts', 'editorial_directives']) {
+      const { error } = await db
+        .from(table)
+        .delete()
+        .eq('game_id', game.id)
+        .eq('logic_version', logicVersion);
+      if (error) throw error;
+    }
+  }
+
   for (const result of calculatedFacts) {
     const { error: factError } = await db
       .from('game_facts')
@@ -81,7 +92,7 @@ export async function refreshDukeFacts(client = null) {
         game_id: result.gameId,
         fact_key: 'headline_facts',
         value: result.facts,
-        logic_version: EVENT_LOGIC_VERSION,
+        logic_version: logicVersion,
       }, { onConflict: 'game_id,fact_key,logic_version' });
     if (factError) throw factError;
 
@@ -89,19 +100,19 @@ export async function refreshDukeFacts(client = null) {
     const detection = detectEvents({
       canonicalKey: game.canonicalKey,
       facts: result.facts,
-    });
-    for (const directive of detection.directives) {
-      for (const issueType of directive.issueTypes) {
+    }, { logicVersion });
+    if (detection.primary) {
+      for (const issueType of detection.primary.issueTypes) {
         const { error: directiveError } = await db
           .from('editorial_directives')
           .upsert({
             game_id: result.gameId,
             issue_type: issueType,
-            tier: directive.tier,
-            directive_key: directive.directiveKey,
-            facts: directive.facts,
-            priority: directive.priority,
-            logic_version: directive.logicVersion,
+            tier: detection.primary.tier,
+            directive_key: detection.primary.directiveKey,
+            facts: detection.primary.facts,
+            priority: detection.primary.priority,
+            logic_version: detection.primary.logicVersion,
           }, { onConflict: 'game_id,issue_type,directive_key,logic_version' });
         if (directiveError) throw directiveError;
       }

@@ -31,8 +31,11 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          NEWSLETTER_TO: ${{ secrets.NEWSLETTER_TO || secrets.NEWSLETTER_TEST_TO }}
+          NEWSLETTER_TO: ${{ secrets.NEWSLETTER_TO }}
+          NEWSLETTER_UNSUBSCRIBE_URL: ${{ secrets.NEWSLETTER_UNSUBSCRIBE_URL }}
+          NEWSLETTER_PREFERENCES_URL: ${{ secrets.NEWSLETTER_PREFERENCES_URL }}
           CFB_DATA_KEY: ${{ secrets.CFB_DATA_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_EDITORIAL_MODEL: ${{ secrets.OPENAI_EDITORIAL_MODEL || 'gpt-4o-mini' }}
           RESEND_FROM_EMAIL: Duke Football Scorigami <onboarding@resend.dev>

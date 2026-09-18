@@ -41,86 +41,111 @@ export async function ingestDukeSeason({
   return masterGames;
 }
 
-async function upsertTeam(client, sportId, team) {
-  const { data, error } = await client
-    .from('teams')
-    .upsert({
-      sport_id: sportId,
-      slug: team.slug,
-      name: team.name,
-      short_name: team.name,
-      metadata: {
-        ...team.metadata,
-        externalId: team.externalId,
-      },
-    }, { onConflict: 'sport_id,slug' })
-    .select('id')
-    .single();
-  if (error) throw error;
-  return data.id;
+async function withPersistenceContext(stage, canonicalKey, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (error && typeof error === 'object') {
+      error.persistenceStage = stage;
+      error.canonicalKey = canonicalKey;
+    }
+    throw error;
+  }
+}
+
+async function upsertTeam(client, sportId, team, canonicalKey) {
+  return withPersistenceContext('teams', canonicalKey, async () => {
+    const { data, error } = await client
+      .from('teams')
+      .upsert({
+        sport_id: sportId,
+        slug: team.slug,
+        name: team.name,
+        short_name: team.name,
+        metadata: {
+          ...team.metadata,
+          externalId: team.externalId,
+        },
+      }, { onConflict: 'sport_id,slug' })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data.id;
+  });
 }
 
 export async function persistMasterGame(masterGame, client = null) {
   const db = client || (await import('../supabaseClient.js')).default;
-  const { data: sport, error: sportError } = await db
-    .from('sports')
-    .upsert(masterGame.sport, { onConflict: 'slug' })
-    .select('id')
-    .single();
-  if (sportError) throw sportError;
+  const { canonicalKey } = masterGame;
+  const sport = await withPersistenceContext('sports', canonicalKey, async () => {
+    const { data, error } = await db
+      .from('sports')
+      .upsert(masterGame.sport, { onConflict: 'slug' })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data;
+  });
 
   const participants = [];
   for (const participant of masterGame.participants) {
     participants.push({
       ...participant,
-      teamId: await upsertTeam(db, sport.id, participant.team),
+      teamId: await upsertTeam(db, sport.id, participant.team, canonicalKey),
     });
   }
 
-  const { data: game, error: gameError } = await db
-    .from('games')
-    .upsert({
-      sport_id: sport.id,
-      canonical_key: masterGame.canonicalKey,
-      season: masterGame.season,
-      week: masterGame.week,
-      start_at: masterGame.startAt,
-      status: masterGame.status,
-      venue_name: masterGame.venueName,
-      city: masterGame.city,
-      state: masterGame.state,
-      neutral_site: masterGame.neutralSite,
-      notes: masterGame.notes,
-    }, { onConflict: 'canonical_key' })
-    .select('id')
-    .single();
-  if (gameError) throw gameError;
+  const game = await withPersistenceContext('games', canonicalKey, async () => {
+    const { data, error } = await db
+      .from('games')
+      .upsert({
+        sport_id: sport.id,
+        canonical_key: masterGame.canonicalKey,
+        season: masterGame.season,
+        week: masterGame.week,
+        start_at: masterGame.startAt,
+        status: masterGame.status,
+        venue_name: masterGame.venueName,
+        city: masterGame.city,
+        state: masterGame.state,
+        neutral_site: masterGame.neutralSite,
+        notes: masterGame.notes,
+      }, { onConflict: 'canonical_key' })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data;
+  });
 
   for (const participant of participants) {
-    const { error } = await db
-      .from('game_participants')
-      .upsert({
-        game_id: game.id,
-        team_id: participant.teamId,
-        participant_role: participant.role,
-        score: participant.score,
-        metadata: participant.team.metadata,
-      }, { onConflict: 'game_id,participant_role' });
-    if (error) throw error;
+    await withPersistenceContext('game_participants', canonicalKey, async () => {
+      const { error } = await db
+        .from('game_participants')
+        .upsert({
+          game_id: game.id,
+          team_id: participant.teamId,
+          participant_role: participant.role,
+          score: participant.score,
+          metadata: participant.team.metadata,
+        }, { onConflict: 'game_id,participant_role' });
+      if (error) throw error;
+    });
   }
 
   for (const source of masterGame.sourceRecords) {
-    const { error } = await db
-      .from('game_source_records')
-      .upsert({
-        game_id: game.id,
-        provider: source.provider,
-        external_game_id: source.externalGameId,
-        payload: source.payload,
-        payload_hash: source.payloadHash,
-        source_updated_at: source.sourceUpdatedAt,
-      }, { onConflict: 'provider,external_game_id' });
-    if (error) throw error;
+    await withPersistenceContext('game_source_records', canonicalKey, async () => {
+      const { error } = await db
+        .from('game_source_records')
+        .upsert({
+          game_id: game.id,
+          provider: source.provider,
+          external_game_id: source.externalGameId,
+          payload: source.payload,
+          payload_hash: source.payloadHash,
+          source_updated_at: source.sourceUpdatedAt,
+        }, { onConflict: 'provider,external_game_id' });
+      if (error) throw error;
+    });
   }
 
   for (const enrichment of Object.values(masterGame.enrichments || {})) {
@@ -132,15 +157,17 @@ export async function persistMasterGame(masterGame, client = null) {
         errors: enrichment.errors || {},
       },
     };
-    const { error } = await db
-      .from('game_analytics')
-      .upsert({
-        game_id: game.id,
-        provider: enrichment.provider,
-        metric_set: enrichment.metricSet || 'enrichment',
-        payload,
-      }, { onConflict: 'game_id,provider,metric_set' });
-    if (error) throw error;
+    await withPersistenceContext('game_analytics', canonicalKey, async () => {
+      const { error } = await db
+        .from('game_analytics')
+        .upsert({
+          game_id: game.id,
+          provider: enrichment.provider,
+          metric_set: enrichment.metricSet || 'enrichment',
+          payload,
+        }, { onConflict: 'game_id,provider,metric_set' });
+      if (error) throw error;
+    });
   }
 
   return game.id;

@@ -1,0 +1,24 @@
+{"id": "US-01M2QXNM", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "US-01M2QX2Y", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "US-01M2QX4Z", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "EP-01M2QXQF", "type": "epic", "project": "duke_fb_scorigami"}
+{"id": "TS-01M2RBPJ", "type": "test-spec", "project": "duke_fb_scorigami"}
+{"id": "TS-01M2RDQ4", "type": "test-spec", "project": "duke_fb_scorigami"}
+{"id": "TS-01M2RK8E", "type": "test-spec", "project": "duke_fb_scorigami"}
+{"id": "PL-01M2T866", "type": "plan", "project": "duke_fb_scorigami"}
+{"event": "plan-review", "phase": "plan-review", "id": "US01M2QXAG", "verdict": "APPROVE", "reviewer": "architect; independent; generated", "author": "OpenCode; agent; v1", "independent": true, "project": "duke_fb_scorigami"}
+{"event": "plan-review", "phase": "plan-review", "id": "US01M2QXFG", "verdict": "APPROVE", "reviewer": "architect; independent; generated", "author": "OpenCode; agent; v1", "independent": true, "project": "duke_fb_scorigami"}
+{"event": "plan-review", "phase": "plan-review", "id": "US01M2QX66", "verdict": "APPROVE", "reviewer": "architect; independent; generated", "author": "OpenCode; agent; v1", "independent": true, "project": "duke_fb_scorigami"}
+{"event": "plan-review", "phase": "plan-review", "id": "US01M2QX6F", "verdict": "APPROVE", "reviewer": "architect; independent; generated", "author": "OpenCode; agent; v1", "independent": true, "project": "duke_fb_scorigami"}
+{"id": "US-01M2QX66", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "US-01M2QX6F", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "US-01M2QXAG", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "US-01M2QXFG", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "EP-01M2QXFK", "type": "epic", "project": "duke_fb_scorigami"}
+{"event": "plan-review", "phase": "plan-review", "id": "US01M2QXQ8", "verdict": "APPROVE", "reviewer": "architect; independent; generated", "author": "OpenCode; agent; v1", "independent": true, "project": "duke_fb_scorigami"}
+{"id": "US-01M2QXQ8", "type": "story", "project": "duke_fb_scorigami"}
+{"event": "plan-review", "phase": "plan-review", "id": "US01M2QXQ7", "verdict": "APPROVE", "reviewer": "architect; independent; generated", "author": "OpenCode; agent; v1", "independent": true, "project": "duke_fb_scorigami"}
+{"id": "US-01M2QXQ7", "type": "story", "project": "duke_fb_scorigami"}
+{"event": "plan-review", "phase": "plan-review", "id": "US01M2QXMY", "verdict": "APPROVE", "reviewer": "architect; independent; generated", "author": "OpenCode; agent; v1", "independent": true, "project": "duke_fb_scorigami"}
+{"id": "US-01M2QXMY", "type": "story", "project": "duke_fb_scorigami"}
+{"id": "EP-01M2QXHW", "type": "epic", "project": "duke_fb_scorigami"}

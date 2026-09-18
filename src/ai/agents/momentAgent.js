@@ -21,7 +21,7 @@ export async function runMomentAgent(packet, options = {}) {
     schema: momentSchema,
     ...options,
   });
-  if (result.output) return result.output;
+  if (result.output) return { output: result.output, fallbackReason: result.fallbackReason || null };
   const fallback = buildDeterministicEditorialFallback({
     current_opponent: packet.issue.currentOpponent,
     quarters: [{ final: packet.facts.score.duke }, { final: packet.facts.score.opponent }],
@@ -29,5 +29,8 @@ export async function runMomentAgent(packet, options = {}) {
     guide_context: packet.issue.guideContext,
     turning_point: packet.issue.turningPoint,
   }).moment;
-  return { ...fallback, warnings: result.warning ? [result.warning] : fallback.warnings };
+  return {
+    output: { ...fallback, warnings: result.warning ? [result.warning] : fallback.warnings },
+    fallbackReason: result.fallbackReason || null,
+  };
 }

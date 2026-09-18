@@ -1,4 +1,5 @@
 import { loadMediaGuide } from '../mediaGuide/loadGuide.js';
+import { buildHeadlineDirective } from '../eventDetector.js';
 import { calculateGameNarrativeFacts } from './gameNarrativeFacts.js';
 
 test('combines guide-backed record and play-by-play comeback facts', () => {
@@ -32,7 +33,7 @@ test('combines guide-backed record and play-by-play comeback facts', () => {
   expect(facts.statisticalHooks[0].key).toBe('record_watch_single-game-passing-yards');
 });
 
-test('does not invent a comeback without a verified scoring progression', () => {
+test('safeguard does not invent a comeback without a verified scoring progression', () => {
   const facts = calculateGameNarrativeFacts({
     guide: loadMediaGuide(),
     game: {
@@ -45,6 +46,7 @@ test('does not invent a comeback without a verified scoring progression', () => 
   });
 
   expect(facts.narrative).toEqual({});
+  expect(buildHeadlineDirective({ facts })).toBeNull();
 });
 
 test('does not call a fourth-quarter late lead when Duke already led after the third', () => {

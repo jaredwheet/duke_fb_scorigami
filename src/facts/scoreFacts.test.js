@@ -37,3 +37,16 @@ test('detects the first occurrence and previous occurrence', () => {
     previousOccurrence: { gameId: 1, opponent: 'South Carolina' },
   });
 });
+
+test('safeguard omits a completed game when either score is missing', () => {
+  expect(calculateDukeScoreFacts([{
+    id: 3,
+    canonicalKey: 'missing-score',
+    status: 'final',
+    startAt: '2026-09-12T00:00:00Z',
+    participants: [
+      { team: { slug: 'duke', name: 'Duke' }, score: null },
+      { team: { slug: 'virginia', name: 'Virginia' }, score: 17 },
+    ],
+  }])).toEqual([]);
+});

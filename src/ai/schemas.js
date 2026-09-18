@@ -56,9 +56,9 @@ export const momentScoutSchema = {
         additionalProperties: false,
         properties: {
           type: { type: 'string' },
-          claim: { type: 'string' },
-          evidence: { type: 'string' },
-          sourceUrls: { type: 'array', items: { type: 'string' } },
+          claim: { type: 'string', maxLength: 300 },
+          evidence: { type: 'string', maxLength: 1800 },
+          sourceUrls: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 2048 } },
           confidence: { type: 'string', enum: ['lead', 'corroborated'] },
           factsUsed: { type: 'array', items: { type: 'string' } },
         },

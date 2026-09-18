@@ -1,0 +1,44 @@
+<mjml>
+  <mj-head>
+    <mj-title>{{subject}}</mj-title>
+    <mj-preview>{{preview_text}}</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Courier New, Courier, monospace" color="#101820" />
+      <mj-text padding="0" />
+      <mj-section padding="0" />
+      <mj-table padding="0" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#d9d2c3">
+    <mj-section background-color="#f8f4ea" padding="28px 24px 12px">
+      <mj-column>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="34px" line-height="1" font-weight="800" letter-spacing="-1px">{{edition_name}}</mj-text>
+        <mj-text font-size="11px" letter-spacing="2px" padding-top="12px">{{issue_date}}</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#f8f4ea" padding="10px 24px 4px">
+      <mj-column>
+        <mj-divider border-color="#101820" border-width="4px" padding="0" />
+        <mj-divider border-color="#101820" border-width="1px" padding="5px 0 0" />
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#f8f4ea" padding="20px 24px 24px">
+      <mj-column>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="31px" line-height="1.1" font-weight="800">{{headline}}</mj-text>
+        <mj-text font-family="Georgia, 'Times New Roman', serif" font-size="17px" line-height="1.35" font-weight="700" padding-top="12px">{{subheadline}}</mj-text>
+        <mj-text font-size="15px" line-height="1.55" padding-top="12px">{{brief_lead}}</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff" padding="20px 24px">
+      <mj-column>
+        <mj-table>{{section_rows}}</mj-table>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#f8f4ea" padding="8px 24px 24px">
+      <mj-column>
+        <mj-divider border-color="#101820" border-width="3px" padding="0" />
+        <mj-text align="center" font-size="11px" padding-top="18px">{{footer_text}}<br /><a href="{{unsubscribe_url}}" style="color:#101820;">Unsubscribe</a> | <a href="{{preferences_url}}" style="color:#101820;">Manage preferences</a></mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

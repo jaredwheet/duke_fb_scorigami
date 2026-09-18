@@ -1,6 +1,4 @@
-function isDuke(team) {
-  return team?.slug === 'duke' || team?.name?.toLowerCase() === 'duke';
-}
+import { isDukeTeam } from '../teamUtils.js';
 
 export function canonicalScorePair(scoreA, scoreB) {
   if (scoreA == null || scoreB == null) return null;
@@ -9,8 +7,8 @@ export function canonicalScorePair(scoreA, scoreB) {
 
 function getDukeParticipants(game) {
   const participants = game.participants || [];
-  const duke = participants.find((participant) => isDuke(participant.team));
-  const opponent = participants.find((participant) => !isDuke(participant.team));
+  const duke = participants.find((participant) => isDukeTeam(participant.team));
+  const opponent = participants.find((participant) => !isDukeTeam(participant.team));
   if (!duke || !opponent || duke.score == null || opponent.score == null) return null;
   return { duke, opponent };
 }
